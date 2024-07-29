@@ -4,6 +4,7 @@ import com.ironclad.clangoals.components.service.dto.RemoteConfig;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NonNull;
 
 @Getter
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
@@ -18,6 +19,7 @@ public final class PluginState
 	 * Remote config for the plugin.
 	 * Default assigned by @Link{ConfigService}
 	 */
+	@NonNull
 	RemoteConfig remoteConfig;
 	boolean inGame;
 	/**
