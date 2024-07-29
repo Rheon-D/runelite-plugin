@@ -2,6 +2,7 @@ package com.ironclad.clangoals.components.tracking;
 
 import com.google.common.collect.Sets;
 import com.google.gson.JsonObject;
+import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.ironclad.clangoals.IroncladClanGoalsConfig;
 import com.ironclad.clangoals.components.service.api.Endpoint;
@@ -29,9 +30,10 @@ public class NpcTrackingComponent extends AbstractTrackingComponent<NPC>
 	private final Set<Actor> trackedNpcs;
 	private final Client client;
 
-	public NpcTrackingComponent(BatchConfig.Type type, ApiService api, EventBus eventBus, Client client)
+	@Inject
+	public NpcTrackingComponent(ApiService api, EventBus eventBus, Client client)
 	{
-		super(type, api, eventBus);
+		super(BatchConfig.Type.NPC, api, eventBus);
 		trackedNpcs = Sets.newHashSet();
 		this.client = client;
 	}
