@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
+import net.runelite.api.events.ClanChannelChanged;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
@@ -67,6 +68,7 @@ public class ServiceComponent implements Component
 		}
 		this.state = state;
 		eventBus.post(new PluginStateChanged(old, this.state));
+		log.debug("PluginStateChanged: {}", this.state);
 	}
 
 	@Subscribe
@@ -81,7 +83,7 @@ public class ServiceComponent implements Component
 						.inClan(false)
 						.inEnabledWorld(false)
 						.build(),
-					false);
+					true);
 				break;
 			case LOGGING_IN:
 			case LOADING:
@@ -103,7 +105,6 @@ public class ServiceComponent implements Component
 
 				setState(state.toBuilder()
 						.inGame(true)
-						.inClan(ClanUtils.isMemberOfClan(client))
 						.inEnabledWorld(!WorldUtils.isDisabledWorldType(client.getWorldType()))
 						.build(),
 					false);
@@ -111,15 +112,18 @@ public class ServiceComponent implements Component
 				long currHash = api.getAccountHash();
 				long newHash = client.getAccountHash();
 
-				if (currHash == newHash)
+				if (currHash != newHash)
 				{
-					break;
+					api.updatePlayer(player);
 				}
-
-				api.updatePlayer(player);
-
 				break;
 		}
+	}
+
+	@Subscribe
+	private void onClanChannelChanged(ClanChannelChanged event)
+	{
+		setState(state.toBuilder().inClan(ClanUtils.isMemberOfClan(client)).build(), false);
 	}
 
 

@@ -5,9 +5,11 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.ToString;
 
 @Getter
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
+@ToString
 public final class PluginState
 {
 	/**
