@@ -144,6 +144,8 @@ public final class ApiService
 			return;
 		}
 
+		if(!authenticated) return;
+
 		JsonObject data = new JsonObject();
 		accountHash = player.getHash();
 
