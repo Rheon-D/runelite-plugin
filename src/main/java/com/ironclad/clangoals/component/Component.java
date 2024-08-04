@@ -7,7 +7,7 @@ public interface Component
 {
 	default boolean isEnabled(IroncladClanGoalsConfig config, PluginState state)
 	{
-		return state.isAuthenticated();
+		return state.isAuthenticated() && !state.getRemoteConfig().isMaintenance();
 	}
 
 	void onStartUp(PluginState state);

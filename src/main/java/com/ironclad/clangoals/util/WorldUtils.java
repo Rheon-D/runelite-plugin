@@ -42,10 +42,9 @@ public class WorldUtils
 	/**
 	 * Check if the world type is disabled.
 	 * <p>
-	 * TODO: Ideally this will no longer be a hardcoded list,
 	 * but rather a list of world types that are enabled for a specific goal.
 	 *
-	 * @param worldTypes The @link{WorldType}s to check
+	 * @param worldTypes The {@link WorldType}s to check
 	 * @return true if the world type is disabled or if the worldTypes is null
 	 */
 	public static boolean isDisabledWorldType(EnumSet<WorldType> worldTypes)

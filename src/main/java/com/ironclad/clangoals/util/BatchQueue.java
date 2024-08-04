@@ -1,6 +1,7 @@
 package com.ironclad.clangoals.util;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
@@ -10,9 +11,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
+import net.runelite.client.util.ExecutorServiceExceptionLogger;
 import net.runelite.client.util.RSTimeUnit;
 
-@Slf4j
 public final class BatchQueue<T>
 {
 	private static final int DEFAULT_MAX_ITEMS = 10;
@@ -44,25 +45,25 @@ public final class BatchQueue<T>
 
 	/**
 	 * @param itemLimit Flush when items reach this amount. -1 to disable.
-	 * @param cooldown  MS, Flush when cooldown is reached.
+	 * @param interval  MS, Flush when interval is reached.
 	 */
-	public BatchQueue(int itemLimit, long cooldown, Consumer<List<T>> onFlush)
+	public BatchQueue(int itemLimit, long interval, Consumer<List<T>> onFlush)
 	{
-		if (cooldown <= 0)
+		if (interval <= 0)
 		{
-			throw new IllegalArgumentException("Cooldown must be positive.");
+			throw new IllegalArgumentException("Interval must be positive.");
 		}
 		this.queue = new ConcurrentLinkedQueue<>();
 		this.limit = itemLimit;
-		this.cooldown = cooldown;
+		this.cooldown = interval;
 		this.onFlush = onFlush;
 		this.itemCount = new AtomicInteger(0);
 	}
 
 	public void start()
 	{
-		executor = Executors.newSingleThreadScheduledExecutor();
-		executor.scheduleAtFixedRate(this::flush, cooldown, cooldown, TimeUnit.MILLISECONDS);
+		executor = new ExecutorServiceExceptionLogger(Executors.newSingleThreadScheduledExecutor());
+		executor.scheduleWithFixedDelay(this::flush, cooldown, cooldown, TimeUnit.SECONDS);
 	}
 
 	/**
@@ -70,8 +71,9 @@ public final class BatchQueue<T>
 	 */
 	public void shutdown()
 	{
-		this.flush();
-		this.executor.shutdown();
+		flush();
+		executor.shutdown();
+		executor = null;
 	}
 
 	public synchronized void flush()
@@ -89,7 +91,6 @@ public final class BatchQueue<T>
 		}
 
 		itemCount.set(0);
-		log.debug("[ironclad-clan-goals] Flushing batch queue.");
 
 		onFlush.accept(snapshot);
 	}

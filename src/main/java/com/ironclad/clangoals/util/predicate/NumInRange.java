@@ -1,4 +1,4 @@
-package com.ironclad.clangoals.components.service.config.predicate;
+package com.ironclad.clangoals.util.predicate;
 
 import java.util.function.Predicate;
 import lombok.Builder;
@@ -17,6 +17,6 @@ public class NumInRange implements Predicate<Number>
 	@Override
 	public boolean test(Number number)
 	{
-		return number != null && min.doubleValue() >= number.doubleValue() && number.doubleValue() <= max.doubleValue();
+		return number != null && number.doubleValue() >= min.doubleValue() && number.doubleValue() <= max.doubleValue();
 	}
 }

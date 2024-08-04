@@ -1,4 +1,4 @@
-package com.ironclad.clangoals.components.service.config.predicate;
+package com.ironclad.clangoals.util.predicate;
 
 import com.ironclad.clangoals.components.service.dto.BatchConfig;
 import com.ironclad.clangoals.components.service.dto.RemoteConfig;
@@ -14,8 +14,8 @@ public class ValidConfig implements Predicate<RemoteConfig>
 
 	static {
 		var interval = NumInRange.builder()
-			.min(1000)
-			.max(Duration.of(10, ChronoUnit.MINUTES).toMillis())
+			.min(Duration.of(1, ChronoUnit.SECONDS).toSeconds())
+			.max(Duration.of(10, ChronoUnit.MINUTES).toSeconds())
 			.build();
 		var size = NumInRange.builder()
 			.min(1)

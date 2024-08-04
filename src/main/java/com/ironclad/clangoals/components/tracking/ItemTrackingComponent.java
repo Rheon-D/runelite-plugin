@@ -3,15 +3,14 @@ package com.ironclad.clangoals.components.tracking;
 import com.google.gson.JsonObject;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.ironclad.clangoals.IroncladClanGoalsConfig;
-import com.ironclad.clangoals.components.service.api.Endpoint;
-import com.ironclad.clangoals.components.service.PluginState;
+import com.google.inject.name.Named;
 import com.ironclad.clangoals.components.service.api.ApiService;
 import com.ironclad.clangoals.components.service.dto.BatchConfig;
-import com.ironclad.clangoals.util.BatchQueue;
 import com.ironclad.clangoals.util.WorldUtils;
 import java.util.List;
 import java.util.stream.Collectors;
+import lombok.NonNull;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.events.GameStateChanged;
@@ -19,43 +18,42 @@ import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.NpcLootReceived;
 import net.runelite.client.game.ItemManager;
-import net.runelite.client.game.ItemStack;
 
 @Slf4j
 @Singleton
-public class ItemTrackingComponent extends AbstractTrackingComponent<NpcLootReceived>
+public class ItemTrackingComponent extends AbstractTrackingComponent<ItemTrackingComponent.Record>
 {
 	private final Client client;
-	private final BatchQueue<NpcLootReceived> queue = new BatchQueue<>(this::onFlush);
-	;
 	private final ItemManager itemManager;
-	@Inject
 
-	public ItemTrackingComponent(ApiService api, EventBus eventBus, Client client, ItemManager itemManager)
+	private final String endpoint;
+
+	@Inject
+	public ItemTrackingComponent(ApiService api,
+								 EventBus eventBus,
+								 Client client,
+								 ItemManager itemManager,
+								 @Named("api.endpoint.batch.loot") String endpoint)
 	{
 		super(BatchConfig.Type.ITEM, api, eventBus);
 		this.client = client;
 		this.itemManager = itemManager;
+		this.endpoint = endpoint;
 	}
 
-	@Override
-	public boolean isEnabled(IroncladClanGoalsConfig config, PluginState state)
+	protected void onFlush(List<Record> items)
 	{
-		return super.isEnabled(config, state) && state.isInEnabledWorld();
-	}
-
-	protected void onFlush(List<NpcLootReceived> items)
-	{
-		List<ItemStack> allTheThings = items.stream()
-			.flatMap(e -> e.getItems().stream())
+		log.debug("Flushing Loot Queue");
+		List<ItemData> allTheThings = items.stream()
+			.flatMap(e -> e.getData().stream())
 			.collect(Collectors.toList());
 
-		this.api.batchUpdate(Endpoint.LOOT, allTheThings, (item) ->
+		this.api.batchUpdate(endpoint, allTheThings, (item) ->
 		{
 			JsonObject tmp = new JsonObject();
-			tmp.addProperty("item_id", item.getId());
+			tmp.addProperty("item_id", item.getItemId());
 			tmp.addProperty("quantity", item.getQuantity());
-			tmp.addProperty("name", itemManager.getItemComposition(item.getId()).getName());
+			tmp.addProperty("name", item.getName());
 			return tmp;
 		});
 	}
@@ -67,7 +65,7 @@ public class ItemTrackingComponent extends AbstractTrackingComponent<NpcLootRece
 		{
 			case LOGIN_SCREEN:
 			case HOPPING:
-				this.queue.flush();
+				getQueue().flush();
 				break;
 		}
 	}
@@ -75,17 +73,43 @@ public class ItemTrackingComponent extends AbstractTrackingComponent<NpcLootRece
 	@Subscribe
 	private void onNpcLootReceived(NpcLootReceived npcLootReceived)
 	{
-		if (npcLootReceived.getItems().isEmpty() || WorldUtils.isDisabledWorldType(client.getWorldType()))
+		if (blockTracking() || npcLootReceived.getItems().isEmpty())
 		{
 			return;
 		}
-		// Check that player is not within a restricted region.
-		if (!WorldUtils.isPlayerWithinMapRegion(client, WorldUtils.LAST_MAN_STANDING_REGIONS) &&
-			!WorldUtils.isPlayerWithinMapRegion(client, WorldUtils.SOUL_WARS_REGIONS)
-		)
-		{
-			queue.addItem(npcLootReceived);
-		}
+		getQueue().addItem(new Record(npcLootReceived
+			.getItems().stream().map(stack -> new ItemData(
+				stack.getId(),
+				stack.getQuantity(),
+				itemManager
+					.getItemComposition(
+						stack.getId())
+					.getName()
+			))
+			.collect(Collectors.toList())));
+	}
+
+	@Override
+	protected boolean blockTracking()
+	{
+		return super.blockTracking()
+			|| WorldUtils.isPlayerWithinMapRegion(client, WorldUtils.LAST_MAN_STANDING_REGIONS)
+			|| WorldUtils.isPlayerWithinMapRegion(client, WorldUtils.SOUL_WARS_REGIONS);
+	}
+
+	@Value
+	@NonNull
+	static class ItemData
+	{
+		int itemId;
+		int quantity;
+		String name;
+	}
+
+	@Value
+	static class Record
+	{
+		List<ItemData> data;
 	}
 
 }

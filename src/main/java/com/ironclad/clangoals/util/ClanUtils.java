@@ -1,6 +1,7 @@
 package com.ironclad.clangoals.util;
 
 import net.runelite.api.Client;
+import net.runelite.api.clan.ClanMember;
 import net.runelite.api.clan.ClanRank;
 import net.runelite.api.clan.ClanSettings;
 
@@ -14,9 +15,9 @@ public class ClanUtils
 	 */
 	public static boolean isMemberOfClan(Client client)
 	{
-		final ClanSettings clan = client.getClanSettings();
+		ClanSettings clan = client.getClanSettings();
 		if(clan == null) return false;
-		var self = clan.findMember(client.getLocalPlayer().getName());
+		ClanMember self = clan.findMember(client.getLocalPlayer().getName());
 		if(self == null || self.getRank() == ClanRank.GUEST) return false;
 		return clan.getName().equals("IronClad");
 	}

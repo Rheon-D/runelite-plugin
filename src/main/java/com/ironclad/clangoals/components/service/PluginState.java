@@ -1,5 +1,7 @@
 package com.ironclad.clangoals.components.service;
 
+import com.ironclad.clangoals.components.service.api.ApiService;
+import com.ironclad.clangoals.components.service.config.ConfigService;
 import com.ironclad.clangoals.components.service.dto.RemoteConfig;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -13,13 +15,13 @@ import lombok.ToString;
 public final class PluginState
 {
 	/**
-	 * Has the @Link{ApiService} been provided with
+	 * Has the {@link ApiService} been provided with
 	 * a valid API key.
 	 */
 	boolean authenticated;
 	/**
 	 * Remote config for the plugin.
-	 * Default assigned by @Link{ConfigService}
+	 * Default assigned by {@link ConfigService}
 	 */
 	@NonNull
 	RemoteConfig remoteConfig;
@@ -30,7 +32,6 @@ public final class PluginState
 	boolean inClan;
 	/**
 	 * Is the player in a world where goals are enabled.
-	 * TODO: Make this a per goal setting.
 	 */
-	boolean inEnabledWorld;
+	boolean inEnabledWorld;//TODO: Make this a per goal setting.
 }

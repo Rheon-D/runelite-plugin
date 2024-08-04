@@ -1,4 +1,4 @@
-package com.ironclad.clangoals.components.goals;
+package com.ironclad.clangoals.components.panel;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -22,12 +22,11 @@ import net.runelite.client.ui.NavigationButton;
 @Slf4j
 @Singleton
 @RequiredArgsConstructor(onConstructor_ = @Inject)
-public class GoalComponent implements Component
+public class PanelComponent implements Component
 {
-
 	private final EventBus eventBus;
 	private final ClientToolbar clientToolbar;
-	private final GoalPanel panel;
+	private final SidePanel panel;
 	private final ApiService api;
 	private ScheduledExecutorService executor;
 	private NavigationButton navigationButton;
@@ -39,7 +38,7 @@ public class GoalComponent implements Component
 		{
 			navigationButton = NavigationButton.builder()
 				.tooltip("Ironclad Clan Goals")
-				.icon(GoalPanel.ICON)
+				.icon(SidePanel.ICON)
 				.priority(999)
 				.panel(panel)
 				.build();
@@ -66,7 +65,7 @@ public class GoalComponent implements Component
 
 	private void updatePanel()
 	{
-		CompletableFuture<List<XPGoal>> future = api.getGoals();
+		//CompletableFuture<List<XPGoal>> future = api.getGoals();
 		//future.thenAccept(panel::updateGoals).exceptionally(panel::failedUpdate);
 	}
 
@@ -74,4 +73,6 @@ public class GoalComponent implements Component
 	private void onPluginStateChanged(PluginStateChanged e){
 
 	}
+
+
 }

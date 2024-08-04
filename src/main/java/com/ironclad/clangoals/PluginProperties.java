@@ -10,11 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 final class PluginProperties
 {
-	private static final String VERSION_MAJOR = "version.major";
-	private static final String VERSION_MINOR = "version.minor";
-	private static final String VERSION_PATCH = "version.patch";
-	private static final String VERSION_STRING = "version.string";
-	private static final String API_BASE = "api.base";
+	private static final String VERSION_MAJOR = "plugin.version.major";
+	private static final String VERSION_MINOR = "plugin.version.minor";
+	private static final String VERSION_PATCH = "plugin.version.patch";
+	private static final String VERSION_STRING = "plugin.version.string";
 
 	@Getter(AccessLevel.PACKAGE)
 	private static final Properties properties = new Properties();

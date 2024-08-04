@@ -30,6 +30,7 @@ abstract class AbstractTrackingComponent<Q> implements Component
 	@Override
 	public final void onStartUp(PluginState state)
 	{
+		this.state = state;
 		rebuildQueue(state.getRemoteConfig());
 		eventBus.register(this);
 		onComponentStart(state);
@@ -59,23 +60,36 @@ abstract class AbstractTrackingComponent<Q> implements Component
 	public boolean isEnabled(IroncladClanGoalsConfig config, PluginState state)
 	{
 		return state.isAuthenticated()
+			&& state.isInClan()
+			&& !state.getRemoteConfig().isMaintenance()
 			&& state.getRemoteConfig().getBatchConfigs().get(type).isEnabled();
 	}
 
 	@Subscribe
-	private void onPluginStateChanged(PluginStateChanged e){
+	private void onPluginStateChanged(PluginStateChanged e)
+	{
 		state = e.getCurrent();
 	}
 
 	@Subscribe
-	private void onRemoteConfigChanged(RemoteConfigChanged e){
+	private void onRemoteConfigChanged(RemoteConfigChanged e)
+	{
 		rebuildQueue(e.getCurrent());
 	}
 
-	private void rebuildQueue(RemoteConfig config){
+	private void rebuildQueue(RemoteConfig config)
+	{
 		BatchConfig bconf = config.getBatchConfigs().get(type);
-		if(queue != null) queue.shutdown();
+		if (queue != null)
+		{
+			queue.shutdown();
+		}
 		queue = new BatchQueue<>(bconf.getSize(), bconf.getInterval(), this::onFlush);
 		queue.start();
+	}
+
+	protected boolean blockTracking()
+	{
+		return !getState().isInGame() && !getState().isInEnabledWorld();
 	}
 }
