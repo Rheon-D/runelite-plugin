@@ -103,11 +103,11 @@ public class NPCTrackingComponent extends AbstractTrackingComponent<TrackedNpc>
 	@Subscribe
 	private void onHitsplatApplied(HitsplatApplied e)
 	{
-		if (blockTracking() || !(e.getActor() instanceof NPC) || !e.getHitsplat().isMine())
+		if (blockTracking() || !(e.getActor() instanceof NPC))
 		{
-			return; //If the hitsplat isn't ours, YEET
+			return;
 		}
-
+		//Track all seen hitsplats.
 		NPC npc = (NPC) e.getActor();
 
 		trackedNpcs.computeIfAbsent(npc.getIndex(), index -> new TrackedNpc(
