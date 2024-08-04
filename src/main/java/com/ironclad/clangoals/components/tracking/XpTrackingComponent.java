@@ -4,12 +4,15 @@ import com.google.gson.JsonObject;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import com.ironclad.clangoals.components.service.PluginState;
 import com.ironclad.clangoals.components.service.api.ApiService;
 import com.ironclad.clangoals.components.service.dto.BatchConfig;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Client;
 import net.runelite.api.Skill;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.GameTick;
 import net.runelite.api.events.StatChanged;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
@@ -22,13 +25,28 @@ public class XpTrackingComponent extends AbstractTrackingComponent<StatChanged>
 {
 	private final EnumMap<Skill, Integer> xpMap;
 	private final String endpoint;
+	private final Client client;
+	private boolean requiresInit = false;
 
 	@Inject
-	public XpTrackingComponent(ApiService api, EventBus eventBus, @Named("api.endpoint.batch.xp") String endpoint)
+	public XpTrackingComponent(ApiService api, EventBus eventBus, @Named("api.endpoint.batch.xp") String endpoint, Client client)
 	{
 		super(BatchConfig.Type.XP, api, eventBus);
+		this.client = client;
 		this.xpMap = new EnumMap<>(Skill.class);
 		this.endpoint = endpoint;
+	}
+
+	@Override
+	protected void onComponentStart(PluginState state)
+	{
+		requiresInit = true;
+	}
+
+	@Override
+	protected void onComponentStop(PluginState state)
+	{
+		super.onComponentStop(state);
 	}
 
 	protected void onFlush(List<StatChanged> items){
@@ -51,14 +69,28 @@ public class XpTrackingComponent extends AbstractTrackingComponent<StatChanged>
 			case LOGIN_SCREEN:
 			case HOPPING:
 				getQueue().flush();
+			case LOGGING_IN:
+				requiresInit = true;
 				break;
+		}
+	}
+
+	@Subscribe
+	private void onGameTick(GameTick e){
+		if(requiresInit){
+			log.debug("Initiating Xp Tracking");
+			xpMap.clear();
+			for(Skill skill : Skill.values()){
+				xpMap.put(skill, client.getSkillExperience(skill));
+			}
+			requiresInit = false;
 		}
 	}
 
 	@Subscribe
 	private void onStatChanged(StatChanged e)
 	{
-		if(blockTracking()) return;
+		if(blockTracking() || requiresInit) return;
 
 		Skill skill = e.getSkill();
 

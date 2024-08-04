@@ -82,14 +82,13 @@ public class ServiceComponent implements Component
 		{
 			case LOGIN_SCREEN:
 				api.refreshAccountHash();
-			case LOADING:
 			case HOPPING:
 				setState(state.toBuilder()
 						.inGame(false)
 						.inClan(false)
 						.inEnabledWorld(false)
 						.build(),
-					true);
+					false);
 				break;
 			case LOGGED_IN:
 				clientThread.invokeLater(() -> {

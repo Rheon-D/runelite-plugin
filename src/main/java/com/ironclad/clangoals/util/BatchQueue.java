@@ -69,6 +69,10 @@ public final class BatchQueue<T>
 	 */
 	public void shutdown()
 	{
+		if (executor == null)
+		{
+			return; //We called shutdown twice, somehow. Maybe. Probably. I hope.
+		}
 		flush();
 		executor.shutdown();
 		executor = null;

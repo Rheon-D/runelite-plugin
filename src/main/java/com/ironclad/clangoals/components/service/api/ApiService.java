@@ -277,6 +277,8 @@ public class ApiService
 		data.addProperty("account_hash", accountHash);
 		data.add("batch", items);
 
+		System.out.println(data.toString());//TODO REMOVE
+
 		RequestBody body = RequestBody.create(JSON, data.toString());
 
 		HttpUrl url = apiBase.newBuilder()

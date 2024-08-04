@@ -8,6 +8,8 @@ import com.google.inject.name.Named;
 import com.ironclad.clangoals.components.service.PluginState;
 import com.ironclad.clangoals.components.service.api.ApiService;
 import com.ironclad.clangoals.components.service.dto.BatchConfig;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import lombok.AccessLevel;
@@ -18,8 +20,10 @@ import net.runelite.api.Client;
 import net.runelite.api.NPC;
 import net.runelite.api.events.ActorDeath;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.GameTick;
 import net.runelite.api.events.HitsplatApplied;
 import net.runelite.api.events.NpcDespawned;
+import net.runelite.api.events.NpcSpawned;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 
@@ -27,6 +31,7 @@ import net.runelite.client.eventbus.Subscribe;
 @Singleton
 public class NPCTrackingComponent extends AbstractTrackingComponent<TrackedNpc>
 {
+	private static final int YEET_TIME = 30;//Seconds
 	@Getter(AccessLevel.PACKAGE)
 	private final Map<Integer, TrackedNpc> trackedNpcs;
 	private final Client client;
@@ -84,7 +89,7 @@ public class NPCTrackingComponent extends AbstractTrackingComponent<TrackedNpc>
 		Complete accuracy probably isn't possible, but for mass amounts of npc kills it should be fine.
 		Possible to track boss kc (likely a lower kill target) with more accuracy by tracking the kc message.
 		 */
-		//This would include stuff like bankers
+	//This would include stuff like bankers
 		/*if (source == client.getLocalPlayer() && target instanceof NPC)
 		{
 			NPC npc = (NPC) target;
@@ -106,10 +111,34 @@ public class NPCTrackingComponent extends AbstractTrackingComponent<TrackedNpc>
 		NPC npc = (NPC) e.getActor();
 
 		trackedNpcs.computeIfAbsent(npc.getIndex(), index -> new TrackedNpc(
-				npc.getId(),
-				npc.getIndex(),
-				npc.getName()
-			)).applyHitsplat(e.getHitsplat());
+			npc.getId(),
+			npc.getIndex(),
+			npc.getName()
+		)).applyHitsplat(e.getHitsplat());
+	}
+
+	@Subscribe
+	private void onGameTick(GameTick e)
+	{
+		int size = trackedNpcs.size();
+		trackedNpcs.values().removeIf(trackedNpc -> trackedNpc.getLastSeen()
+			.map(lastSeenAt ->
+				Duration.between(lastSeenAt, Instant.now()).getSeconds() >= YEET_TIME)
+			.orElse(false));
+		if(size > trackedNpcs.size())
+		{
+			log.debug("Yeeted {} NPCs", size - trackedNpcs.size());
+		}
+	}
+
+	@Subscribe
+	private void onNpcSpawned(NpcSpawned e)
+	{
+		NPC npc = e.getNpc();
+		trackedNpcs.computeIfPresent(npc.getIndex(), (index, trackedNpc) -> {
+			trackedNpc.setMissing(false);
+			return trackedNpc;
+		});
 	}
 
 	@Subscribe
@@ -122,6 +151,10 @@ public class NPCTrackingComponent extends AbstractTrackingComponent<TrackedNpc>
 			{
 				logKill(trackedNpc);
 				return null; //Remove the NPC if we killed it
+			}
+			else
+			{
+				trackedNpc.setMissing(true);
 			}
 			return trackedNpc; //Keep the little shit if we didn't
 		});
