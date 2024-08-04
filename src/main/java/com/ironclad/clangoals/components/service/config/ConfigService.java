@@ -11,8 +11,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.EnumMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
@@ -49,7 +47,7 @@ public final class ConfigService
 
 	private final ApiService api;
 	private final EventBus eventBus;
-	private ScheduledExecutorService executor;
+	private final ScheduledExecutorService executor;
 
 	private volatile RemoteConfig configuration = DEFAULT_CONFIG;
 	private final CompletableFuture<RemoteConfig> firstRunFuture = new CompletableFuture<>();

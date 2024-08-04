@@ -39,7 +39,7 @@ public class ApiService
 	private final String characterEndpoint;
 	private final String configEndpoint;
 	private final String batchEndpoint;
-	private final String goalEndpoint;
+	private final String goalEndpoint; //TODO implement
 	private final boolean devServer;
 
 	private final OkHttpClient httpClient;
@@ -97,7 +97,7 @@ public class ApiService
 			apiKey = Environment.DEV_KEY.get();
 		}
 
-		if (Strings.isNullOrEmpty(apiKey))
+		if (!VALID_API_KEY.test(apiKey) || Strings.isNullOrEmpty(apiKey))
 		{
 			authenticated = false;
 			return CompletableFuture.completedFuture(false);

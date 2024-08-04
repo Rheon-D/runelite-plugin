@@ -1,7 +1,6 @@
 package com.ironclad.clangoals.util;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
@@ -9,7 +8,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import lombok.extern.slf4j.Slf4j;
 
 import net.runelite.client.util.ExecutorServiceExceptionLogger;
 import net.runelite.client.util.RSTimeUnit;
@@ -21,7 +19,7 @@ public final class BatchQueue<T>
 	private ScheduledExecutorService executor;
 	private final ConcurrentLinkedQueue<T> queue;
 	private final int limit;
-	private AtomicInteger itemCount;
+	private final AtomicInteger itemCount;
 	private final long cooldown;
 	private final Consumer<List<T>> onFlush;
 

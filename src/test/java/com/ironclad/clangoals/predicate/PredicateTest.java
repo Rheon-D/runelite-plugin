@@ -5,7 +5,6 @@ import com.ironclad.clangoals.components.service.dto.RemoteConfig;
 import com.ironclad.clangoals.util.predicate.NumInRange;
 import com.ironclad.clangoals.util.predicate.ValidApiKey;
 import com.ironclad.clangoals.util.predicate.ValidConfig;
-import java.time.Instant;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import org.junit.Test;
