@@ -9,5 +9,5 @@ public class RemoteConfig
 {
 	Instant lastUpdated;
 	boolean maintenance;
-	Map<BatchConfig.Type, BatchConfig> batchConfigs;
+	Map<TrackingConfig.Type, TrackingConfig> batchConfigs;
 }

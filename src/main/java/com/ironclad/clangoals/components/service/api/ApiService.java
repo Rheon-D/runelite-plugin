@@ -17,6 +17,7 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import okhttp3.*;
@@ -43,10 +44,10 @@ public class ApiService
 	private final boolean devServer;
 
 	private final OkHttpClient httpClient;
-	private final Client client;
 	private final Gson gson;
 	private String apiKey;
 	@Getter
+	@Setter
 	private long accountHash = UNKNOWN;
 	@Getter
 	private boolean authenticated;
@@ -60,7 +61,6 @@ public class ApiService
 					  @Named("api.endpoint.goals") String goalEndpoint,
 					  @Named("use.dev.server") boolean devServer,
 					  OkHttpClient httpClient,
-					  Client client,
 					  @IronClad Gson gson)
 	{
 		this.apiBase = apiBase;
@@ -71,14 +71,7 @@ public class ApiService
 		this.goalEndpoint = goalEndpoint;
 		this.devServer = devServer;
 		this.httpClient = httpClient;
-		this.client = client;
 		this.gson = gson;
-	}
-
-	public void refreshAccountHash()
-	{
-		accountHash = client.getAccountHash();
-		log.debug("Account hash updated to {}", accountHash);
 	}
 
 	/**
@@ -88,19 +81,19 @@ public class ApiService
 	 * <p>
 	 *
 	 * @param apiKey API key to authenticate
-	 * @return Future representing the result of the authentication
+	 * @return Result of authentication
 	 */
-	public CompletableFuture<Boolean> authenticateAsync(@Nullable String apiKey)
+	public boolean checkAuth(@Nullable String apiKey)
 	{
 		if (devServer)
 		{
 			apiKey = Environment.DEV_KEY.get();
 		}
 
-		if (!VALID_API_KEY.test(apiKey) || Strings.isNullOrEmpty(apiKey))
+		if (!VALID_API_KEY.test(apiKey))
 		{
 			authenticated = false;
-			return CompletableFuture.completedFuture(false);
+			return false;
 		}
 
 		this.apiKey = apiKey;
@@ -109,68 +102,29 @@ public class ApiService
 			.addPathSegment(characterEndpoint)
 			.build();
 
-		Request req = sharedRequest(url)
+		Request req = new Request.Builder()
+			.url(url)
+			.header("accept", "application/json")
+			.header("content-type", "application/json")
+			.header("authorization", apiKey)
+			.header("x-plugin-version", version)
 			.get()
 			.build();
-
-		CompletableFuture<Boolean> future = new CompletableFuture<>();
 
 		log.debug("Checking authentication...");
 
-		httpClient.newCall(req)
-			.enqueue(new Callback()
-			{
-				@Override
-				public void onFailure(@NonNull Call call, @NonNull IOException e)
-				{
-					authenticated = false;
-					future.completeExceptionally(e);
-					log.debug("Authentication request failed");
-				}
-
-				@Override
-				public void onResponse(@NonNull Call call, @NonNull Response response)
-				{
-					try (response)
-					{
-						authenticated = response.isSuccessful();
-						future.complete(authenticated);
-						log.debug("Authentication successful");
-					}
-					catch (Exception e)
-					{
-						future.completeExceptionally(e);
-						log.debug("Error authenticating");
-					}
-				}
-			});
-
-		return future;
-	}
-
-	/**
-	 * Fetch the plugin configuration from the server.
-	 *
-	 * @return CompletableFuture containing the RemoteConfiguration
-	 */
-	public CompletableFuture<RemoteConfig> getPluginConfigurationAsync()
-	{
-		if (!authenticated)
+		try (Response res = httpClient.newCall(req).execute())
 		{
-			log.debug("Not authenticated, skipping get plugin configuration");
-			return CompletableFuture.completedFuture(null);
+			authenticated = res.isSuccessful();
+			log.debug("Authentication successful");
+		}
+		catch (Exception e)
+		{
+			authenticated = false;
+			log.debug("Authentication request failed");
 		}
 
-		HttpUrl url = apiBase.newBuilder()
-			.addPathSegment(configEndpoint)
-			.build();
-
-		Request request = sharedRequest(url)
-			.get()
-			.build();
-
-		log.debug("Getting remote configuration...");
-		return sharedFuture(request, RemoteConfig.class);
+		return authenticated;
 	}
 
 	@Nullable
@@ -200,22 +154,21 @@ public class ApiService
 		}
 		catch (IOException e)
 		{
-			log.warn("Error occurred getting plugin configuration ", e);
+			log.debug("Error occurred getting plugin configuration ", e);
 		}
 		catch (JsonParseException ex)
 		{
-			log.warn("Json parsing error occurred getting plugin configuration ", ex);
+			log.debug("Json parsing error occurred getting plugin configuration ", ex);
 
 		}
 		return null;
 	}
 
-
 	/**
 	 * Persist the account has with the current player name
 	 * against the authenticated API key.
 	 */
-	public void updatePlayer(@NonNull String name)
+	public void updatePlayerAsync(@NonNull String name)
 	{
 		if (!authenticated || accountHash == UNKNOWN || Strings.isNullOrEmpty(name))
 		{
@@ -254,7 +207,7 @@ public class ApiService
 	 * @param converter Function to convert {@link T} to {@link JsonObject}
 	 * @param <T>       Type of the {@link T}
 	 */
-	public <T> void batchUpdate(@NonNull String endPoint, @NonNull List<T> batch, @NonNull Function<T, JsonObject> converter)
+	public <T> void batchUpdateAsync(@NonNull String endPoint, @NonNull List<T> batch, @NonNull Function<T, JsonObject> converter)
 	{
 		if (!authenticated || accountHash == UNKNOWN)
 		{
@@ -276,8 +229,6 @@ public class ApiService
 		JsonObject data = new JsonObject();
 		data.addProperty("account_hash", accountHash);
 		data.add("batch", items);
-
-		System.out.println(data.toString());//TODO REMOVE
 
 		RequestBody body = RequestBody.create(JSON, data.toString());
 
@@ -312,7 +263,6 @@ public class ApiService
 			.header("x-account-hash", String.valueOf(accountHash))
 			.header("x-plugin-version", version);
 	}
-
 
 	private Callback sharedCallback(Consumer<Response> responseConsumer, Consumer<Exception> exceptionConsumer)
 	{

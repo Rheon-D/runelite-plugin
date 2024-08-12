@@ -6,10 +6,12 @@ import com.ironclad.clangoals.components.service.PluginState;
 import com.ironclad.clangoals.components.service.PluginStateChanged;
 import com.ironclad.clangoals.components.service.api.ApiService;
 import com.ironclad.clangoals.components.service.config.RemoteConfigChanged;
-import com.ironclad.clangoals.components.service.dto.BatchConfig;
+import com.ironclad.clangoals.components.service.dto.TrackingConfig;
 import com.ironclad.clangoals.components.service.dto.RemoteConfig;
 import com.ironclad.clangoals.util.BatchQueue;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -17,11 +19,12 @@ import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 
 @RequiredArgsConstructor
-abstract class AbstractTrackingComponent<Q> implements Component
+public abstract class AbstractTrackingComponent<Q> implements Component
 {
-	private final BatchConfig.Type type;
+	private final TrackingConfig.Type type;
 	protected final ApiService api;
 	protected final EventBus eventBus;
+	protected final ScheduledExecutorService executor;
 	@Getter(AccessLevel.PROTECTED)
 	private BatchQueue<Q> queue;
 	@Getter(AccessLevel.PROTECTED)
@@ -60,7 +63,6 @@ abstract class AbstractTrackingComponent<Q> implements Component
 	public boolean isEnabled(IroncladClanGoalsConfig config, PluginState state)
 	{
 		return state.isAuthenticated()
-			&& state.isInClan()
 			&& !state.getRemoteConfig().isMaintenance()
 			&& state.getRemoteConfig().getBatchConfigs().get(type).isEnabled();
 	}
@@ -79,17 +81,17 @@ abstract class AbstractTrackingComponent<Q> implements Component
 
 	private void rebuildQueue(RemoteConfig config)
 	{
-		BatchConfig bconf = config.getBatchConfigs().get(type);
+		TrackingConfig bconf = config.getBatchConfigs().get(type);
 		if (queue != null)
 		{
 			queue.shutdown();
 		}
 		queue = new BatchQueue<>(bconf.getSize(), bconf.getInterval(), this::onFlush);
-		queue.start();
+		queue.start(executor);
 	}
 
 	protected boolean blockTracking()
 	{
-		return !getState().isInGame() && !getState().isInEnabledWorld();
+		return !getState().isInGame() || !getState().isInEnabledWorld() || !getState().isInClan();
 	}
 }

@@ -85,6 +85,10 @@ public class ComponentManager
 
 	private void tryStartUp(Component c, PluginState pluginState)
 	{
+		if(states.get(c)) return;
+
+		log.debug("Starting up component: {}", c.getClass().getSimpleName());
+
 		try
 		{
 			c.onStartUp(pluginState);

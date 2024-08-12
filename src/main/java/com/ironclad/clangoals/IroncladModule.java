@@ -8,13 +8,12 @@ import com.google.inject.Singleton;
 import com.google.inject.multibindings.Multibinder;
 import com.google.inject.name.Named;
 import com.google.inject.name.Names;
-import com.ironclad.clangoals.components.panel.PanelComponent;
 import com.ironclad.clangoals.components.service.ServiceComponent;
-import com.ironclad.clangoals.components.tracking.NPCTrackingComponent;
-import com.ironclad.clangoals.components.tracking.ItemTrackingComponent;
+import com.ironclad.clangoals.components.tracking.npcs.NPCTrackingComponent;
+import com.ironclad.clangoals.components.tracking.loot.ItemTrackingComponent;
 import com.ironclad.clangoals.components.service.config.ConfigService;
-import com.ironclad.clangoals.components.tracking.NPCTrackingDevOverlay;
-import com.ironclad.clangoals.components.tracking.XpTrackingComponent;
+import com.ironclad.clangoals.components.tracking.npcs.NPCTrackingDevOverlay;
+import com.ironclad.clangoals.components.tracking.xp.XpTrackingComponent;
 import com.ironclad.clangoals.components.service.api.ApiService;
 import com.ironclad.clangoals.component.Component;
 import com.ironclad.clangoals.util.Environment;
@@ -37,7 +36,6 @@ final class IroncladModule extends AbstractModule
 
 		Multibinder<Component> components = Multibinder.newSetBinder(binder(), Component.class);
 		components.addBinding().to(ServiceComponent.class);
-		components.addBinding().to(PanelComponent.class);
 		components.addBinding().to(XpTrackingComponent.class);
 		components.addBinding().to(ItemTrackingComponent.class);
 		components.addBinding().to(NPCTrackingComponent.class);

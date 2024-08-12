@@ -1,4 +1,4 @@
-package com.ironclad.clangoals.components.tracking;
+package com.ironclad.clangoals.components.tracking.xp;
 
 import com.google.gson.JsonObject;
 import com.google.inject.Inject;
@@ -6,8 +6,10 @@ import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.ironclad.clangoals.components.service.PluginState;
 import com.ironclad.clangoals.components.service.api.ApiService;
-import com.ironclad.clangoals.components.service.dto.BatchConfig;
+import com.ironclad.clangoals.components.service.dto.TrackingConfig;
+import com.ironclad.clangoals.components.tracking.AbstractTrackingComponent;
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Skill;
@@ -29,9 +31,13 @@ public class XpTrackingComponent extends AbstractTrackingComponent<StatChanged>
 	private boolean requiresInit = false;
 
 	@Inject
-	public XpTrackingComponent(ApiService api, EventBus eventBus, @Named("api.endpoint.batch.xp") String endpoint, Client client)
+	public XpTrackingComponent(ApiService api,
+							   EventBus eventBus,
+							   @Named("api.endpoint.batch.xp") String endpoint,
+							   Client client,
+							   ScheduledExecutorService executor)
 	{
-		super(BatchConfig.Type.XP, api, eventBus);
+		super(TrackingConfig.Type.XP, api, eventBus, executor);
 		this.client = client;
 		this.xpMap = new EnumMap<>(Skill.class);
 		this.endpoint = endpoint;
@@ -51,7 +57,7 @@ public class XpTrackingComponent extends AbstractTrackingComponent<StatChanged>
 
 	protected void onFlush(List<StatChanged> items){
 		log.debug("Flushing Xp Queue");
-		this.api.batchUpdate(endpoint, items, (item) ->
+		this.api.batchUpdateAsync(endpoint, items, (item) ->
 		{
 			JsonObject tmp = new JsonObject();
 			tmp.addProperty("skill", item.getSkill().getName().toLowerCase());

@@ -1,13 +1,15 @@
-package com.ironclad.clangoals.components.tracking;
+package com.ironclad.clangoals.components.tracking.loot;
 
 import com.google.gson.JsonObject;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
 import com.ironclad.clangoals.components.service.api.ApiService;
-import com.ironclad.clangoals.components.service.dto.BatchConfig;
+import com.ironclad.clangoals.components.service.dto.TrackingConfig;
+import com.ironclad.clangoals.components.tracking.AbstractTrackingComponent;
 import com.ironclad.clangoals.util.WorldUtils;
 import java.util.List;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 import lombok.NonNull;
 import lombok.Value;
@@ -25,7 +27,6 @@ public class ItemTrackingComponent extends AbstractTrackingComponent<ItemTrackin
 {
 	private final Client client;
 	private final ItemManager itemManager;
-
 	private final String endpoint;
 
 	@Inject
@@ -33,9 +34,10 @@ public class ItemTrackingComponent extends AbstractTrackingComponent<ItemTrackin
 								 EventBus eventBus,
 								 Client client,
 								 ItemManager itemManager,
-								 @Named("api.endpoint.batch.loot") String endpoint)
+								 @Named("api.endpoint.batch.loot") String endpoint,
+								 ScheduledExecutorService executor)
 	{
-		super(BatchConfig.Type.ITEM, api, eventBus);
+		super(TrackingConfig.Type.ITEM, api, eventBus, executor);
 		this.client = client;
 		this.itemManager = itemManager;
 		this.endpoint = endpoint;
@@ -48,7 +50,7 @@ public class ItemTrackingComponent extends AbstractTrackingComponent<ItemTrackin
 			.flatMap(e -> e.getData().stream())
 			.collect(Collectors.toList());
 
-		this.api.batchUpdate(endpoint, allTheThings, (item) ->
+		this.api.batchUpdateAsync(endpoint, allTheThings, (item) ->
 		{
 			JsonObject tmp = new JsonObject();
 			tmp.addProperty("item_id", item.getItemId());
@@ -77,6 +79,7 @@ public class ItemTrackingComponent extends AbstractTrackingComponent<ItemTrackin
 		{
 			return;
 		}
+
 		getQueue().addItem(new Record(npcLootReceived
 			.getItems().stream().map(stack -> new ItemData(
 				stack.getId(),
@@ -111,5 +114,4 @@ public class ItemTrackingComponent extends AbstractTrackingComponent<ItemTrackin
 	{
 		List<ItemData> data;
 	}
-
 }

@@ -5,7 +5,7 @@ import lombok.Value;
 
 @Value
 @Builder
-public class BatchConfig
+public class TrackingConfig
 {
 	int size;
 	long interval;

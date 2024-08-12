@@ -5,45 +5,34 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.util.ExecutorServiceExceptionLogger;
-import net.runelite.client.util.RSTimeUnit;
 
+@Slf4j
 public final class BatchQueue<T>
 {
-	private static final int DEFAULT_MAX_ITEMS = 10;
-	private static final long DEFAULT_FLUSH = RSTimeUnit.GAME_TICKS.getDuration().toMillis() * 15;
 	private ScheduledExecutorService executor;
+	private ScheduledFuture<?> scheduledFuture;
 	private final ConcurrentLinkedQueue<T> queue;
 	private final int limit;
 	private final AtomicInteger itemCount;
-	private final long cooldown;
+	/**
+	 * MS between flush attempts.
+	 */
+	private final long interval;
 	private final Consumer<List<T>> onFlush;
 
-	/**
-	 * Construct a new BatchQueue with default values.
-	 */
-	public BatchQueue(Consumer<List<T>> onFlush)
-	{
-		this(DEFAULT_MAX_ITEMS, DEFAULT_FLUSH, onFlush);
-	}
-
-	public BatchQueue(int itemLimit, Consumer<List<T>> onFlush)
-	{
-		this(itemLimit, DEFAULT_FLUSH, onFlush);
-	}
-
-	public BatchQueue(long cooldown, Consumer<List<T>> onFlush)
-	{
-		this(DEFAULT_MAX_ITEMS, cooldown, onFlush);
-	}
+	private final AtomicBoolean isShutdown = new AtomicBoolean(true);
 
 	/**
 	 * @param itemLimit Flush when items reach this amount. -1 to disable.
-	 * @param interval  MS, Flush when interval is reached.
+	 * @param interval  S, The interval between flush attempts.
 	 */
 	public BatchQueue(int itemLimit, long interval, Consumer<List<T>> onFlush)
 	{
@@ -53,15 +42,19 @@ public final class BatchQueue<T>
 		}
 		this.queue = new ConcurrentLinkedQueue<>();
 		this.limit = itemLimit;
-		this.cooldown = interval;
+		this.interval = interval;
 		this.onFlush = onFlush;
 		this.itemCount = new AtomicInteger(0);
 	}
 
-	public void start()
+	public void start(ScheduledExecutorService executor)
 	{
-		executor = new ExecutorServiceExceptionLogger(Executors.newSingleThreadScheduledExecutor());
-		executor.scheduleWithFixedDelay(this::flush, cooldown, cooldown, TimeUnit.SECONDS);
+		log.debug("Starting BatchQueue");
+		if (isShutdown.compareAndSet(true, false))
+		{
+			this.executor = executor;
+			this.scheduledFuture = executor.scheduleWithFixedDelay(this::runFlush, interval, interval, TimeUnit.SECONDS);
+		}
 	}
 
 	/**
@@ -69,21 +62,33 @@ public final class BatchQueue<T>
 	 */
 	public void shutdown()
 	{
-		if (executor == null)
+		log.debug("Shutting down BatchQueue");
+		if (isShutdown.compareAndSet(false, true))
 		{
-			return; //We called shutdown twice, somehow. Maybe. Probably. I hope.
+			flush();
+			scheduledFuture.cancel(true);
 		}
-		flush();
-		executor.shutdown();
-		executor = null;
 	}
 
-	public synchronized void flush()
+	public void flush()
+	{
+		if(isShutdown.get())
+		{
+			return;
+		}
+		executor.execute(this::runFlush);
+	}
+
+	/**
+	 * Force a flush of the queue.
+	 */
+	private void runFlush()
 	{
 		if (itemCount.get() == 0)
 		{
 			return;
 		}
+
 		List<T> snapshot = new ArrayList<>();
 
 		T item;
@@ -94,7 +99,14 @@ public final class BatchQueue<T>
 
 		itemCount.set(0);
 
-		onFlush.accept(snapshot);
+		try
+		{
+			onFlush.accept(snapshot);
+		}
+		catch (Exception e)
+		{
+			log.error("Error during flush", e);
+		}
 	}
 
 	/**
@@ -107,11 +119,13 @@ public final class BatchQueue<T>
 	 */
 	public void addItem(T item)
 	{
-		if (item == null)
+		if (item == null || isShutdown.get())
 		{
 			return;
 		}
+
 		queue.add(item);
+
 		int curr = itemCount.incrementAndGet();
 
 		if (limit > 0 && curr >= limit)

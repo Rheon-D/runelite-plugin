@@ -4,7 +4,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.ironclad.clangoals.components.service.api.ApiService;
 import com.ironclad.clangoals.components.service.dto.RemoteConfig;
-import com.ironclad.clangoals.components.service.dto.BatchConfig;
+import com.ironclad.clangoals.components.service.dto.TrackingConfig;
 import com.ironclad.clangoals.util.predicate.ValidConfig;
 import java.time.Duration;
 import java.time.Instant;
@@ -12,10 +12,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.EnumMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.eventbus.EventBus;
+import net.runelite.client.util.RSTimeUnit;
 
 @Slf4j
 @Singleton
@@ -27,20 +29,21 @@ public final class ConfigService
 
 	static
 	{
-		DEFAULT_CONFIG = new RemoteConfig(Instant.EPOCH, false, new EnumMap<>(BatchConfig.Type.class));
-		DEFAULT_CONFIG.getBatchConfigs().put(BatchConfig.Type.XP, BatchConfig.builder()
+		DEFAULT_CONFIG = new RemoteConfig(Instant.EPOCH, false, new EnumMap<>(TrackingConfig.Type.class));
+
+		DEFAULT_CONFIG.getBatchConfigs().put(TrackingConfig.Type.XP, TrackingConfig.builder()
 			.size(100)
-			.interval(Duration.of(150, ChronoUnit.SECONDS).toMillis())
+			.interval(60)
 			.enabled(true)
 			.build());
-		DEFAULT_CONFIG.getBatchConfigs().put(BatchConfig.Type.NPC, BatchConfig.builder()
+		DEFAULT_CONFIG.getBatchConfigs().put(TrackingConfig.Type.NPC, TrackingConfig.builder()
 			.size(10)
-			.interval(Duration.of(15, ChronoUnit.SECONDS).toMillis())
+			.interval(15)
 			.enabled(true)
 			.build());
-		DEFAULT_CONFIG.getBatchConfigs().put(BatchConfig.Type.ITEM, BatchConfig.builder()
+		DEFAULT_CONFIG.getBatchConfigs().put(TrackingConfig.Type.ITEM, TrackingConfig.builder()
 			.size(10)
-			.interval(Duration.of(15, ChronoUnit.SECONDS).toMillis())
+			.interval(15)
 			.enabled(true)
 			.build());
 	}
@@ -48,6 +51,7 @@ public final class ConfigService
 	private final ApiService api;
 	private final EventBus eventBus;
 	private final ScheduledExecutorService executor;
+	private final ScheduledFuture<?> scheduledFuture;
 
 	private volatile RemoteConfig configuration = DEFAULT_CONFIG;
 	private final CompletableFuture<RemoteConfig> firstRunFuture = new CompletableFuture<>();
@@ -58,14 +62,14 @@ public final class ConfigService
 		this.api = api;
 		this.eventBus = eventBus;
 		this.executor = executor;
-		executor.scheduleAtFixedRate(this::tick, 0, INTERVAL_SEC, TimeUnit.of(ChronoUnit.SECONDS));
+		scheduledFuture = executor.scheduleAtFixedRate(this::tick, 0, INTERVAL_SEC, TimeUnit.of(ChronoUnit.SECONDS));
 	}
 
 	public void shutdown()
 	{
 		if (executor != null)
 		{
-			executor.shutdown();
+			scheduledFuture.cancel(true);
 		}
 	}
 
@@ -83,7 +87,7 @@ public final class ConfigService
 				}
 				else
 				{
-					log.debug("Invalid configuration from server, using default.");
+					log.debug("Invalid configuration from server, using last known good.");
 				}
 			}
 		}
@@ -120,6 +124,4 @@ public final class ConfigService
 		}
 		return configuration;
 	}
-
-
 }

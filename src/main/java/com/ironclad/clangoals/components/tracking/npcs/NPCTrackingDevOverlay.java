@@ -1,4 +1,4 @@
-package com.ironclad.clangoals.components.tracking;
+package com.ironclad.clangoals.components.tracking.npcs;
 
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
@@ -81,8 +81,10 @@ public class NPCTrackingDevOverlay extends Overlay implements Component
 	}
 
 	@Subscribe
-	private void onCommandExecuted(CommandExecuted e){
-		if(e.getCommand().equalsIgnoreCase("debugnpcs")){
+	private void onCommandExecuted(CommandExecuted e)
+	{
+		if (e.getCommand().equalsIgnoreCase("debugnpcs"))
+		{
 			enabled = !enabled;
 			chatMessageManager.queue(QueuedMessage.builder()
 				.type(ChatMessageType.CONSOLE)
@@ -106,7 +108,10 @@ public class NPCTrackingDevOverlay extends Overlay implements Component
 	@Override
 	public Dimension render(Graphics2D graphics)
 	{
-		if(!enabled) return null;
+		if (!enabled)
+		{
+			return null;
+		}
 
 		int count = 1;
 
@@ -115,11 +120,13 @@ public class NPCTrackingDevOverlay extends Overlay implements Component
 			int index = entry.getKey();
 			TrackedNpc trackedNpc = entry.getValue();
 			Color color = trackedNpc.isMyKill() ? TRACKED_COLOR : INTERACTING_COLOR;
-			String message = String.format("%d/%d | IDX: %d ID: %d DM: %d DO: %d", count++, plugin.getTrackedNpcs().size(),
+			String message = String.format("%d/%d | IDX: %d ID: %d DM: %d DO: %d | M: %s", count++, plugin.getTrackedNpcs().size(),
 				trackedNpc.getIndex(),
 				trackedNpc.getId(),
 				trackedNpc.getDamageMe(),
-				trackedNpc.getDamageOther());
+				trackedNpc.getDamageOther(),
+				trackedNpc.isMissing()
+			);
 			npcs.computeIfPresent(index, (i, npc) ->
 			{
 				renderer.drawOutline(npc, 5, color, 3);

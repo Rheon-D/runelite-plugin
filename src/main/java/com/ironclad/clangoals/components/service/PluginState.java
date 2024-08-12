@@ -8,11 +8,12 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.ToString;
+import lombok.Value;
 
-@Getter
+@Value
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 @ToString
-public final class PluginState
+public class PluginState
 {
 	/**
 	 * Has the {@link ApiService} been provided with
