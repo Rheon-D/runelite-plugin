@@ -64,7 +64,8 @@ public abstract class AbstractTrackingComponent<Q> implements Component
 	{
 		return state.isAuthenticated()
 			&& !state.getRemoteConfig().isMaintenance()
-			&& state.getRemoteConfig().getBatchConfigs().get(type).isEnabled();
+			&& state.getRemoteConfig().getBatchConfigs().get(type).isEnabled()
+			&& config.autoJoin(); //TODO YEET
 	}
 
 	@Subscribe
