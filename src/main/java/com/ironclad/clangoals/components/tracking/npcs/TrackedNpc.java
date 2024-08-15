@@ -22,7 +22,7 @@ final class TrackedNpc
 	private int damageOther = 0;
 
 	public void setMissing(boolean missing){
-		this.missing = missing? Instant.now().plus(MISSING_DELAY_TICKS, RSTimeUnit.GAME_TICKS): null;
+		this.missing = missing? Instant.now().plus(MISSING_DELAY_TICKS): null;
 	}
 
 	public boolean isMissing(){

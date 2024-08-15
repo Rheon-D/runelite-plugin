@@ -10,6 +10,7 @@ import com.ironclad.clangoals.components.service.PluginState;
 import com.ironclad.clangoals.components.service.api.ApiService;
 import com.ironclad.clangoals.components.service.dto.TrackingConfig;
 import com.ironclad.clangoals.components.tracking.AbstractTrackingComponent;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -171,6 +172,7 @@ import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.NpcLootReceived;
 import net.runelite.client.game.NPCManager;
+import net.runelite.client.util.RSTimeUnit;
 import net.runelite.client.util.Text;
 
 
@@ -239,7 +241,7 @@ public class NPCTrackingComponent extends AbstractTrackingComponent<TrackedNpc>
 		ZALCANO, ZALCANO_9050,
 		ZULRAH, ZULRAH_2043, ZULRAH_2044
 	);
-	static final int MISSING_DELAY_TICKS = 50;
+	static final Duration MISSING_DELAY_TICKS = Duration.of(50, RSTimeUnit.GAME_TICKS);
 
 	@Getter
 	private final Map<Integer, TrackedNpc> trackedNpcs;
