@@ -3,7 +3,6 @@ package com.ironclad.clangoals.util;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -12,7 +11,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.util.ExecutorServiceExceptionLogger;
 
 @Slf4j
 public final class BatchQueue<T>
@@ -50,10 +48,10 @@ public final class BatchQueue<T>
 	public void start(ScheduledExecutorService executor)
 	{
 		log.debug("Starting BatchQueue");
-		if (isShutdown.compareAndSet(true, false))
+		if (this.isShutdown.compareAndSet(true, false))
 		{
 			this.executor = executor;
-			this.scheduledFuture = executor.scheduleWithFixedDelay(this::runFlush, interval, interval, TimeUnit.SECONDS);
+			this.scheduledFuture = executor.scheduleWithFixedDelay(this::runFlush, this.interval, this.interval, TimeUnit.SECONDS);
 		}
 	}
 
@@ -62,21 +60,21 @@ public final class BatchQueue<T>
 	 */
 	public void shutdown()
 	{
-		log.debug("Shutting down BatchQueue");
-		if (isShutdown.compareAndSet(false, true))
+		if (this.isShutdown.compareAndSet(false, true))
 		{
+			log.debug("Shutting down BatchQueue");
 			flush();
-			scheduledFuture.cancel(true);
+			this.scheduledFuture.cancel(true);
 		}
 	}
 
 	public void flush()
 	{
-		if(isShutdown.get())
+		if(this.isShutdown.get())
 		{
 			return;
 		}
-		executor.execute(this::runFlush);
+		this.executor.execute(this::runFlush);
 	}
 
 	/**
@@ -84,7 +82,7 @@ public final class BatchQueue<T>
 	 */
 	private void runFlush()
 	{
-		if (itemCount.get() == 0)
+		if (this.itemCount.get() == 0)
 		{
 			return;
 		}
@@ -92,16 +90,16 @@ public final class BatchQueue<T>
 		List<T> snapshot = new ArrayList<>();
 
 		T item;
-		while ((item = queue.poll()) != null)
+		while ((item = this.queue.poll()) != null)
 		{
 			snapshot.add(item);
 		}
 
-		itemCount.set(0);
+		this.itemCount.set(0);
 
 		try
 		{
-			onFlush.accept(snapshot);
+			this.onFlush.accept(snapshot);
 		}
 		catch (Exception e)
 		{
@@ -119,16 +117,16 @@ public final class BatchQueue<T>
 	 */
 	public void addItem(T item)
 	{
-		if (item == null || isShutdown.get())
+		if (item == null || this.isShutdown.get())
 		{
 			return;
 		}
 
-		queue.add(item);
+		this.queue.add(item);
 
-		int curr = itemCount.incrementAndGet();
+		int curr = this.itemCount.incrementAndGet();
 
-		if (limit > 0 && curr >= limit)
+		if (this.limit > 0 && curr >= this.limit)
 		{
 			this.flush();
 		}

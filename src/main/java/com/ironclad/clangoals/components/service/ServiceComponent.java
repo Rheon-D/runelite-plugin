@@ -5,16 +5,14 @@ import com.google.inject.Singleton;
 import com.ironclad.clangoals.IroncladClanGoalsConfig;
 import com.ironclad.clangoals.component.Component;
 import com.ironclad.clangoals.components.service.api.ApiService;
-import com.ironclad.clangoals.components.service.config.ConfigService;
+import com.ironclad.clangoals.components.service.config.RemoteConfigLoader;
 import com.ironclad.clangoals.components.service.config.RemoteConfigChanged;
-import com.ironclad.clangoals.components.service.dto.RemoteConfig;
 import com.ironclad.clangoals.util.ClanUtils;
 import com.ironclad.clangoals.util.WorldUtils;
 import com.ironclad.clangoals.util.predicate.ValidApiKey;
 import java.util.concurrent.ScheduledExecutorService;
 import joptsimple.internal.Strings;
 import lombok.Getter;
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
@@ -32,11 +30,11 @@ import net.runelite.client.events.ConfigChanged;
 @RequiredArgsConstructor(onConstructor_ = @Inject)
 public class ServiceComponent implements Component
 {
-	private static final PluginState DEFAULT_STATE = PluginState.builder().remoteConfig(ConfigService.DEFAULT_CONFIG).build();
+	private static final PluginState DEFAULT_STATE = PluginState.builder().maintenance(true).build();
 	private static final ValidApiKey VALID_API_KEY = new ValidApiKey();
 
 	private final ApiService api;
-	private final ConfigService configService;
+	private final RemoteConfigLoader rConfigLoader;
 	private final IroncladClanGoalsConfig pluginConfig;
 	private final Client client;
 	private final EventBus eventBus;
@@ -49,15 +47,16 @@ public class ServiceComponent implements Component
 	@Override
 	public void onStartUp(PluginState state)
 	{
-		eventBus.register(this);
-		verifyApiKey(pluginConfig.apiKey(), false);
+		this.eventBus.register(this);
+		onRemoteConfigChanged(new RemoteConfigChanged(this.rConfigLoader.getManagedConfig()));
+		verifyApiKey(this.pluginConfig.apiKey(), false);
 	}
 
 	@Override
 	public void onShutDown(PluginState state)
 	{
-		eventBus.unregister(this);
-		configService.shutdown();
+		this.api.checkAuth(null);
+		this.eventBus.unregister(this);
 	}
 
 	@Override
@@ -74,7 +73,7 @@ public class ServiceComponent implements Component
 			return;
 		}
 		this.state = state;
-		eventBus.post(new PluginStateChanged(old, this.state));
+		this.eventBus.post(new PluginStateChanged(old, this.state));
 		log.debug("PluginStateChanged: {}", this.state);
 	}
 
@@ -84,9 +83,9 @@ public class ServiceComponent implements Component
 		switch (e.getGameState())
 		{
 			case LOGIN_SCREEN:
-				verifyApiKey(pluginConfig.apiKey(), false);
+				verifyApiKey(this.pluginConfig.apiKey(), false);
 			case HOPPING:
-				setState(state.toBuilder()
+				setState(this.state.toBuilder()
 						.inGame(false)
 						.inClan(false)
 						.inEnabledWorld(false)
@@ -102,33 +101,33 @@ public class ServiceComponent implements Component
 	@Subscribe
 	private void onAccountHashChanged(AccountHashChanged e)
 	{
-		api.setAccountHash(client.getAccountHash());
+		this.api.setAccountHash(this.client.getAccountHash());
 	}
 
 	private void onLoggedIn()
 	{
-		clientThread.invokeLater(() -> {
+		this.clientThread.invokeLater(() -> {
 			//Available immediately, display names are not
 			//Patience we must have.
-			Player player = client.getLocalPlayer();
+			Player player = this.client.getLocalPlayer();
 			if (player == null || Strings.isNullOrEmpty(player.getName()))
 			{
 				return false;
 			}
 
-			setState(state.toBuilder()
+			setState(this.state.toBuilder()
 					.inGame(true)
-					.inEnabledWorld(!WorldUtils.isDisabledWorldType(client.getWorldType()))
+					.inEnabledWorld(!WorldUtils.isDisabledWorldType(this.client.getWorldType()))
 					.build(),
 				false);
 
-			long currHash = api.getAccountHash();
-			long newHash = client.getAccountHash();
+			long currHash = this.api.getAccountHash();
+			long newHash = this.client.getAccountHash();
 
 			if (currHash != newHash)
 			{
-				api.setAccountHash(newHash);
-				api.updatePlayerAsync(player.getName());
+				this.api.setAccountHash(newHash);
+				this.api.updatePlayerAsync(player.getName());
 			}
 
 			return true;
@@ -136,9 +135,9 @@ public class ServiceComponent implements Component
 	}
 
 	@Subscribe
-	private void onClanChannelChanged(ClanChannelChanged event)
+	private void onClanChannelChanged(ClanChannelChanged e)
 	{
-		setState(state.toBuilder().inClan(ClanUtils.isMemberOfClan(client)).build(), false);
+		setState(this.state.toBuilder().inClan(ClanUtils.isMemberOfClan(this.client)).build(), false);
 	}
 
 
@@ -154,7 +153,7 @@ public class ServiceComponent implements Component
 		{
 			String newValue = event.getNewValue();
 
-			if (VALID_API_KEY.test(newValue) && !newValue.equals(event.getOldValue()))
+			if (newValue == null || !newValue.equals(event.getOldValue()))
 			{
 				verifyApiKey(newValue, true);
 			}
@@ -164,25 +163,20 @@ public class ServiceComponent implements Component
 	@Subscribe(priority = Float.MAX_VALUE)
 	private void onRemoteConfigChanged(RemoteConfigChanged e)
 	{
-		setState(state.toBuilder().remoteConfig(e.getCurrent()).build(), false);
+		setState(this.state.toBuilder()
+			.maintenance(e.getConfig().isMaintenance())
+			.build(), false);
 	}
 
-	private void verifyApiKey(@NonNull String key, boolean force)
+	private void verifyApiKey(String key, boolean force)
 	{
-		if (api.isAuthenticated() && !force)
+		if (this.api.isAuthenticated() && !force)
 		{
 			return;
 		}
-
-		executor.execute(() -> {
+		this.executor.execute(() -> {
 			boolean result = this.api.checkAuth(key);
-			PluginState.PluginStateBuilder builder = state.toBuilder().authenticated(result);
-			if (result)
-			{
-				RemoteConfig config = configService.getConfiguration();
-				builder.remoteConfig(config);
-			}
-			setState(builder.build(), false);
+			setState(this.state.toBuilder().authenticated(result).build(), false);
 		});
 	}
 }

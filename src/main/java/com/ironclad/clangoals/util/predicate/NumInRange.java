@@ -17,6 +17,6 @@ public class NumInRange implements Predicate<Number>
 	@Override
 	public boolean test(Number number)
 	{
-		return number != null && number.doubleValue() >= min.doubleValue() && number.doubleValue() <= max.doubleValue();
+		return number != null && number.doubleValue() >= this.min.doubleValue() && number.doubleValue() <= this.max.doubleValue();
 	}
 }

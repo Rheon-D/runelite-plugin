@@ -1,14 +1,14 @@
 package com.ironclad.clangoals.components.service.api;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
-import com.ironclad.clangoals.components.service.dto.RemoteConfig;
+import com.ironclad.clangoals.components.service.config.dto.RemoteConfig;
 import com.ironclad.clangoals.util.Environment;
 import com.ironclad.clangoals.util.IronClad;
 import com.ironclad.clangoals.util.predicate.ValidApiKey;
@@ -19,7 +19,6 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
 import okhttp3.*;
 
 import java.io.IOException;
@@ -59,7 +58,7 @@ public class ApiService
 					  @Named("api.endpoint.config") String configEndpoint,
 					  @Named("api.endpoint.batch") String batchEndpoint,
 					  @Named("api.endpoint.goals") String goalEndpoint,
-					  @Named("use.dev.server") boolean devServer,
+					  @Named("devServer") boolean devServer,
 					  OkHttpClient httpClient,
 					  @IronClad Gson gson)
 	{
@@ -85,21 +84,21 @@ public class ApiService
 	 */
 	public boolean checkAuth(@Nullable String apiKey)
 	{
-		if (devServer)
+		if (!VALID_API_KEY.test(apiKey))
+		{
+			this.authenticated = false;
+			return false;
+		}
+
+		if (this.devServer)
 		{
 			apiKey = Environment.DEV_KEY.get();
 		}
 
-		if (!VALID_API_KEY.test(apiKey))
-		{
-			authenticated = false;
-			return false;
-		}
-
 		this.apiKey = apiKey;
 
-		HttpUrl url = apiBase.newBuilder()
-			.addPathSegment(characterEndpoint)
+		HttpUrl url = this.apiBase.newBuilder()
+			.addPathSegment(this.characterEndpoint)
 			.build();
 
 		Request req = new Request.Builder()
@@ -107,61 +106,79 @@ public class ApiService
 			.header("accept", "application/json")
 			.header("content-type", "application/json")
 			.header("authorization", apiKey)
-			.header("x-plugin-version", version)
+			.header("x-plugin-version", this.version)
 			.get()
 			.build();
 
 		log.debug("Checking authentication...");
 
-		try (Response res = httpClient.newCall(req).execute())
+		try (Response res = this.httpClient.newCall(req).execute())
 		{
-			authenticated = res.isSuccessful();
+			this.authenticated = res.isSuccessful();
 			log.debug("Authentication successful");
 		}
 		catch (Exception e)
 		{
-			authenticated = false;
+			this.authenticated = false;
 			log.debug("Authentication request failed");
 		}
 
-		return authenticated;
+		return this.authenticated;
 	}
 
-	@Nullable
-	public RemoteConfig getPluginConfiguration()
+	@NonNull
+	public CompletableFuture<RemoteConfig> getPluginConfiguration(@NonNull String apiKey)
 	{
-		if (!authenticated)
-		{
-			log.debug("Not authenticated, skipping get plugin configuration");
-			return null;
-		}
-
-		HttpUrl url = apiBase.newBuilder()
-			.addPathSegment(configEndpoint)
+		CompletableFuture<RemoteConfig> future = new CompletableFuture<>();
+		HttpUrl url = this.apiBase.newBuilder()
+			.addPathSegment(this.configEndpoint)
 			.build();
 
-		Request request = sharedRequest(url).get().build();
+		Request request = new Request.Builder()
+			.url(url)
+			.header("accept", "application/json")
+			.header("content-type", "application/json")
+			.header("authorization", apiKey)
+			.header("x-plugin-version", this.version)
+			.get()
+			.build();
 
-		try (Response response = httpClient.newCall(request).execute())
+		this.httpClient.newCall(request).enqueue(new Callback()
 		{
-			if (!response.isSuccessful() || response.body() == null)
+			@Override
+			public void onFailure(@NonNull Call call, @NonNull IOException e)
 			{
-				log.warn("Invalid response while getting plugin configuration: {}", response);
-				return null;
+				future.completeExceptionally(e);
 			}
 
-			return gson.fromJson(response.body().string(), RemoteConfig.class);
-		}
-		catch (IOException e)
-		{
-			log.debug("Error occurred getting plugin configuration ", e);
-		}
-		catch (JsonParseException ex)
-		{
-			log.debug("Json parsing error occurred getting plugin configuration ", ex);
+			@Override
+			public void onResponse(@NonNull Call call, @NonNull Response response)
+			{
+				try (response)
+				{
+					if (!response.isSuccessful() || response.body() == null)
+					{
+						throw new IOException("Invalid response while getting plugin configuration: " + response);
+					}
 
-		}
-		return null;
+					String body = response.body().string();
+					RemoteConfig result = ApiService.this.gson.fromJson(body, RemoteConfig.class);
+					if (result == null)
+					{
+						throw new IOException("Failed to parse response body: " + body);
+					}
+					log.debug("Got plugin configuration: {}", result);
+					future.complete(result);
+
+				}
+				catch (Exception e)
+				{
+					log.warn(e.getMessage());
+					future.completeExceptionally(e);
+				}
+			}
+		});
+		return future;
 	}
 
 	/**
@@ -170,7 +187,7 @@ public class ApiService
 	 */
 	public void updatePlayerAsync(@NonNull String name)
 	{
-		if (!authenticated || accountHash == UNKNOWN || Strings.isNullOrEmpty(name))
+		if (!this.authenticated || this.accountHash == UNKNOWN || Strings.isNullOrEmpty(name))
 		{
 			log.debug("Not authenticated or account hash unknown, skipping update player");
 			return;
@@ -178,22 +195,22 @@ public class ApiService
 
 		JsonObject data = new JsonObject();
 
-		data.addProperty("account_hash", accountHash);
+		data.addProperty("account_hash", this.accountHash);
 		data.addProperty("character_name", name);
 
 		RequestBody body = RequestBody.create(JSON, data.toString());
 
-		HttpUrl url = apiBase.newBuilder()
-			.addPathSegment(characterEndpoint)
+		HttpUrl url = this.apiBase.newBuilder()
+			.addPathSegment(this.characterEndpoint)
 			.build();
 
 		Request req = sharedRequest(url)
 			.put(body)
 			.build();
 
-		log.debug("Sending update character request for {}:{}", name, accountHash);
+		log.debug("Sending update character request for {}:{}", name, this.accountHash);
 
-		httpClient.newCall(req).enqueue(sharedCallback(
+		this.httpClient.newCall(req).enqueue(sharedCallback(
 			"character updated",
 			"error updating character"
 		));
@@ -209,7 +226,7 @@ public class ApiService
 	 */
 	public <T> void batchUpdateAsync(@NonNull String endPoint, @NonNull List<T> batch, @NonNull Function<T, JsonObject> converter)
 	{
-		if (!authenticated || accountHash == UNKNOWN)
+		if (!this.authenticated || this.accountHash == UNKNOWN)
 		{
 			log.warn("Not authenticated or account hash unknown, skipping batch update");
 			return;
@@ -227,13 +244,13 @@ public class ApiService
 		}
 
 		JsonObject data = new JsonObject();
-		data.addProperty("account_hash", accountHash);
+		data.addProperty("account_hash", this.accountHash);
 		data.add("batch", items);
 
 		RequestBody body = RequestBody.create(JSON, data.toString());
 
-		HttpUrl url = apiBase.newBuilder()
-			.addPathSegment(batchEndpoint)
+		HttpUrl url = this.apiBase.newBuilder()
+			.addPathSegment(this.batchEndpoint)
 			.addPathSegment(endPoint)
 			.build();
 
@@ -243,25 +260,26 @@ public class ApiService
 
 		log.debug("Sending batch {} update", endPoint);
 
-		httpClient.newCall(request).enqueue(sharedCallback(
+		this.httpClient.newCall(request).enqueue(sharedCallback(
 			"Batch " + endPoint + " updated",
 			"error updating batch " + endPoint
 		));
 	}
 
 	/**
-	 * Shared request headers for all requests.
+	 * Request headers for all account based requests.
 	 */
 	private Request.Builder sharedRequest(HttpUrl url)
 	{
+		Preconditions.checkArgument(this.accountHash != UNKNOWN || this.accountHash == 0, "Account hash must be set before making requests");
 		return new Request
 			.Builder()
 			.url(url)
 			.header("accept", "application/json")
 			.header("content-type", "application/json")
-			.header("authorization", apiKey)
-			.header("x-account-hash", String.valueOf(accountHash))
-			.header("x-plugin-version", version);
+			.header("authorization", this.apiKey)
+			.header("x-account-hash", String.valueOf(this.accountHash))
+			.header("x-plugin-version", this.version);
 	}
 
 	private Callback sharedCallback(Consumer<Response> responseConsumer, Consumer<Exception> exceptionConsumer)
@@ -330,7 +348,7 @@ public class ApiService
 	private <T> CompletableFuture<T> sharedFuture(Request request, Class<T> resType)
 	{
 		CompletableFuture<T> future = new CompletableFuture<>();
-		httpClient.newCall(request).enqueue(new Callback()
+		this.httpClient.newCall(request).enqueue(new Callback()
 		{
 			@Override
 			public void onFailure(@NonNull Call call, @NonNull IOException e)
@@ -351,7 +369,7 @@ public class ApiService
 					if (response.body() != null)
 					{
 						String body = response.body().string();
-						T result = gson.fromJson(body, resType);
+						T result = ApiService.this.gson.fromJson(body, resType);
 						if (result == null)
 						{
 							log.warn("Failed to parse response body: {}", body);

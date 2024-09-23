@@ -3,60 +3,78 @@ package com.ironclad.clangoals.components.tracking.npcs;
 
 import static com.ironclad.clangoals.components.tracking.npcs.NPCTrackingComponent.MISSING_DELAY_TICKS;
 import java.time.Instant;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import net.runelite.api.Hitsplat;
-import net.runelite.client.util.RSTimeUnit;
 
 @Data
-@RequiredArgsConstructor(onConstructor_ = @NonNull)
+@Builder
 final class TrackedNpc
 {
-	private final int index;
-	private final int id;
-	private final int health;
-	private final String name;
-	private Instant missing;
-	private int damageMe = 0;
-	private int damageOther = 0;
+	final int index;
+	int id;
+	@NonNull String name;
+	Instant missing;
+	int damageMe;
+	int damageOther;
+	final CreditMethod creditMethod;
 
 	public void setMissing(boolean missing){
 		this.missing = missing? Instant.now().plus(MISSING_DELAY_TICKS): null;
 	}
 
 	public boolean isMissing(){
-		return missing != null;
+		return this.missing != null;
 	}
 
 	public boolean isTimedOut(){
-		return Instant.now().isAfter(missing);
+		return Instant.now().isAfter(this.missing);
 	}
 
 	public void applyHitsplat(@NonNull Hitsplat hitsplat)
 	{
-		if (damageOther == Integer.MAX_VALUE)
+		if (this.damageOther == Integer.MAX_VALUE)
 		{
 			return; //We already know we can't get the kill.
 		}
 
 		if (hitsplat.isMine())
 		{
-			damageMe += hitsplat.getAmount();
+			this.damageMe += hitsplat.getAmount();
 		}
 		else if (hitsplat.isOthers())
 		{
-			damageOther += hitsplat.getAmount();
+			this.damageOther += hitsplat.getAmount();
 		}
+		/*
 		else if (hitsplat.getHitsplatType() == 1)//That blocky thing
 		{
-			damageOther = Integer.MAX_VALUE; //Assume we can't get the kill.
+			this.damageOther = Integer.MAX_VALUE; //Assume we can't get the kill. Will only happen for irons, sadscamgame
+		}*/
+	}
+
+	public boolean creditMe()
+	{
+		switch(this.creditMethod)
+		{
+			case MOST_DAMAGE:
+				return this.damageMe > this.damageOther;
+			case ONLY_DAMAGE:
+				return this.damageMe > 0 && this.damageOther == 0;
+			case CONTRIBUTED:
+				return this.damageMe > 0;
+			case ALWAYS:
+			default:
+				return true; //HUH
 		}
 	}
 
-	public boolean isMyKill()
+	enum CreditMethod
 	{
-		return damageMe > damageOther
-			&& damageMe >= health / 2;
+		MOST_DAMAGE,
+		ONLY_DAMAGE,
+		CONTRIBUTED,
+		ALWAYS
 	}
 }

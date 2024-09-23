@@ -1,8 +1,6 @@
 package com.ironclad.clangoals;
 
-import com.google.gson.Gson;
 import com.google.inject.Binder;
-import com.google.inject.Inject;
 import com.ironclad.clangoals.component.ComponentManager;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.plugins.Plugin;
@@ -17,6 +15,7 @@ import net.runelite.client.plugins.PluginDescriptor;
 public class IroncladClanGoalsPlugin extends Plugin
 {
 	private ComponentManager componentManager;
+
 	@Override
 	public void configure(Binder binder)
 	{
@@ -26,16 +25,16 @@ public class IroncladClanGoalsPlugin extends Plugin
 	@Override
 	protected void startUp()
 	{
-		if (componentManager == null)
+		if (this.componentManager == null)
 		{
-			componentManager = injector.getInstance(ComponentManager.class);
+			this.componentManager = this.injector.getInstance(ComponentManager.class);
 		}
-		componentManager.onPluginStart();
+		this.componentManager.onPluginStart();
 	}
 
 	@Override
 	protected void shutDown()
 	{
-		componentManager.onPluginStop();
+		this.componentManager.onPluginStop();
 	}
 }

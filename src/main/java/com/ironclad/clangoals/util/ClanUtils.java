@@ -19,6 +19,6 @@ public class ClanUtils
 		if(clan == null) return false;
 		ClanMember self = clan.findMember(client.getLocalPlayer().getName());
 		if(self == null || self.getRank() == ClanRank.GUEST) return false;
-		return clan.getName().equals("IronClad");
+		return clan.getName().equals("IronClad"); //TODO Generify this
 	}
 }

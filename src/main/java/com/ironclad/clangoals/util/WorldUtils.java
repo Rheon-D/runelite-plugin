@@ -1,30 +1,72 @@
 package com.ironclad.clangoals.util;
 
-import com.google.common.collect.ImmutableSet;
 import java.util.EnumSet;
+import lombok.NonNull;
+import lombok.experimental.UtilityClass;
 import net.runelite.api.Client;
 
 import java.util.Set;
 import net.runelite.api.WorldType;
+import net.runelite.api.coords.LocalPoint;
+import net.runelite.api.coords.WorldPoint;
 
+@UtilityClass
 public class WorldUtils
 {
-	private static final EnumSet<WorldType> DISABLED_WORLDS = EnumSet.of(WorldType.DEADMAN,
+	private static final EnumSet<WorldType> DISABLED_WORLDS = EnumSet.of(
+		WorldType.DEADMAN,
 		WorldType.BETA_WORLD,
 		WorldType.NOSAVE_MODE,
 		WorldType.TOURNAMENT_WORLD,
 		WorldType.FRESH_START_WORLD,
+		WorldType.LAST_MAN_STANDING,
 		WorldType.SEASONAL,
-		WorldType.QUEST_SPEEDRUNNING
+		WorldType.QUEST_SPEEDRUNNING,
+		WorldType.PVP_ARENA
 	);
 
-	// @see https://github.com/runelite/runelite/blob/ab0ddd9ea48efc707be1352ec4dacb7cc93cc6fa/runelite-client/src/main/java/net/runelite/client/plugins/loottracker/LootTrackerPlugin.java#L232
-	public static final Set<Integer> LAST_MAN_STANDING_REGIONS = ImmutableSet.of(13658, 13659, 13660, 13914, 13915, 13916, 13918, 13919, 13920, 14174, 14175, 14176, 14430, 14431, 14432);
+	public boolean inRegion(@NonNull Client client, @NonNull EnumSet<Region> regions)
+	{
+		int region = getPlayerRegion(client);
+		return inRegion(region, regions);
+	}
 
-	// @see https://github.com/runelite/runelite/blob/ab0ddd9ea48efc707be1352ec4dacb7cc93cc6fa/runelite-client/src/main/java/net/runelite/client/plugins/loottracker/LootTrackerPlugin.java#L271
-	public static final Set<Integer> SOUL_WARS_REGIONS = ImmutableSet.of(8493, 8749, 9005);
+	public boolean inRegion(int region, @NonNull EnumSet<Region> regions)
+	{
+		for (Region r : regions)
+		{
+			if (r.inRegion(region))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 
-	public static boolean isPlayerWithinMapRegion(Client client, Set<Integer> definedMapRegions)
+	public boolean inRegion(@NonNull Client client, @NonNull Region... regions)
+	{
+		return inRegion(getPlayerRegion(client), regions);
+	}
+
+	public boolean inRegion(int region, @NonNull Region... regions)
+	{
+		for (Region r : regions)
+		{
+			if (r.inRegion(region))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public int getPlayerRegion(@NonNull Client client)
+	{
+		LocalPoint lp = client.getLocalPlayer().getLocalLocation();
+		return lp == null ? -1 : WorldPoint.fromLocalInstance(client, lp).getRegionID();
+	}
+
+	public boolean isPlayerWithinMapRegion(Client client, Set<Integer> definedMapRegions)
 	{
 		final int[] mapRegions = client.getMapRegions();
 
@@ -39,16 +81,15 @@ public class WorldUtils
 		return false;
 	}
 
-	/**
-	 * Check if the world type is disabled.
-	 * <p>
-	 * but rather a list of world types that are enabled for a specific goal.
-	 *
-	 * @param worldTypes The {@link WorldType}s to check
-	 * @return true if the world type is disabled or if the worldTypes is null
-	 */
-	public static boolean isDisabledWorldType(EnumSet<WorldType> worldTypes)
+	public boolean isDisabledWorldType(@NonNull EnumSet<WorldType> worldTypes)
 	{
-		return worldTypes == null || worldTypes.stream().anyMatch(DISABLED_WORLDS::contains);
+		for (WorldType worldType : worldTypes)
+		{
+			if (DISABLED_WORLDS.contains(worldType))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 }

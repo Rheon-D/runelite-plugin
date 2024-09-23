@@ -4,10 +4,11 @@ import joptsimple.internal.Strings;
 
 public enum Environment
 {
+	REMOTE_CONF("ironclad.rconf"),
 	DEV_URL("ironclad.api.base"),
 	DEV_KEY("ironclad.api.key");
 
-	String key;
+	final String key;
 
 	Environment(String key)
 	{
@@ -16,7 +17,7 @@ public enum Environment
 
 	public final String get()
 	{
-		return System.getenv(key);
+		return System.getenv(this.key);
 	}
 
 	public boolean isSet(){

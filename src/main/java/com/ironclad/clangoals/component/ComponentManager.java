@@ -28,21 +28,20 @@ public class ComponentManager
 	private final GameEventManager gameEventManager;
 	private final Set<Component> components;
 	private final Map<Component, Boolean> states = new HashMap<>();
-
 	//public static final boolean stolenFromLlemonDuck = true;
 	public void onPluginStart()
 	{
-		eventBus.register(this);
-		components.forEach(c -> states.put(c, false));
+		this.eventBus.register(this);
+		this.components.forEach(c -> this.states.put(c, false));
 		revalidate();
 	}
 
 	public void onPluginStop()
 	{
-		eventBus.unregister(this);
-		components.stream()
-			.filter(states::get)
-			.forEach(c -> tryShutDown(c, pluginStateTracker.getState()));
+		this.eventBus.unregister(this);
+		this.components.stream()
+			.filter(this.states::get)
+			.forEach(c -> tryShutDown(c, this.pluginStateTracker.getState()));
 	}
 
 	@Subscribe
@@ -63,11 +62,11 @@ public class ComponentManager
 
 	private void revalidate()
 	{
-		PluginState state = pluginStateTracker.getState();
-		components.forEach(c ->
+		PluginState state = this.pluginStateTracker.getState();
+		this.components.forEach(c ->
 		{
-			boolean shouldBeEnabled = c.isEnabled(config, state);
-			boolean isEnabled = states.get(c);
+			boolean shouldBeEnabled = c.isEnabled(this.config, state);
+			boolean isEnabled = this.states.get(c);
 			if (shouldBeEnabled == isEnabled)
 			{
 				return;
@@ -85,15 +84,15 @@ public class ComponentManager
 
 	private void tryStartUp(Component c, PluginState pluginState)
 	{
-		if(states.get(c)) return;
+		if(this.states.get(c)) return;
 
 		log.debug("Starting up component: {}", c.getClass().getSimpleName());
 
 		try
 		{
 			c.onStartUp(pluginState);
-			gameEventManager.simulateGameEvents(c);
-			states.put(c, true);
+			this.gameEventManager.simulateGameEvents(c);
+			this.states.put(c, true);
 		}
 		catch (Exception e)
 		{
@@ -103,7 +102,7 @@ public class ComponentManager
 
 	private void tryShutDown(Component c, PluginState state)
 	{
-		if (!states.get(c))
+		if (!this.states.get(c))
 		{
 			return;
 		}
@@ -119,7 +118,7 @@ public class ComponentManager
 		}
 		finally
 		{
-			states.put(c, false);
+			this.states.put(c, false);
 		}
 	}
 }

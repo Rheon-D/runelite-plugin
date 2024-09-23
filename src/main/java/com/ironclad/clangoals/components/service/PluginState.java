@@ -1,18 +1,13 @@
 package com.ironclad.clangoals.components.service;
 
 import com.ironclad.clangoals.components.service.api.ApiService;
-import com.ironclad.clangoals.components.service.config.ConfigService;
-import com.ironclad.clangoals.components.service.dto.RemoteConfig;
+import com.ironclad.clangoals.components.service.config.RemoteConfigLoader;
 import lombok.AccessLevel;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NonNull;
-import lombok.ToString;
 import lombok.Value;
 
 @Value
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
-@ToString
 public class PluginState
 {
 	/**
@@ -20,12 +15,14 @@ public class PluginState
 	 * a valid API key.
 	 */
 	boolean authenticated;
+
+	boolean maintenance;
 	/**
 	 * Remote config for the plugin.
-	 * Default assigned by {@link ConfigService}
+	 * Default assigned by {@link RemoteConfigLoader}
 	 */
-	@NonNull
-	RemoteConfig remoteConfig;
+	//@NonNull
+	//RemoteConfig remoteConfig;
 	boolean inGame;
 	/**
 	 * Is the player in the IronClad clan.
