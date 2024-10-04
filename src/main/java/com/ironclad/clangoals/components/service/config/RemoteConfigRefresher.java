@@ -7,9 +7,9 @@ import com.ironclad.clangoals.component.Component;
 import com.ironclad.clangoals.components.status.StatusMessage;
 import com.ironclad.clangoals.components.service.PluginState;
 import com.ironclad.clangoals.components.service.config.dto.RemoteConfig;
+import com.ironclad.clangoals.util.predicate.ValidApiKey;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.events.CommandExecuted;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.ScriptPreFired;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 
@@ -28,6 +29,7 @@ import net.runelite.client.eventbus.Subscribe;
 @RequiredArgsConstructor(onConstructor_ = @Inject)
 public class RemoteConfigRefresher implements Component
 {
+	private static final ValidApiKey IS_VALID_KEY = new ValidApiKey();
 	private final EventBus eventBus;
 	private final ScheduledExecutorService executor;
 	private final RemoteConfigLoader remoteConfigService;
@@ -55,7 +57,12 @@ public class RemoteConfigRefresher implements Component
 	@Override
 	public boolean isEnabled(IroncladClanGoalsConfig config, PluginState state)
 	{
-		return state.isAuthenticated();
+		//If we can't reach the server the plugins assumes Maintenance mode.We need to continue checking for
+		//updates to know when the server is back up. So....
+		//Rely on a "valid" API key instead of a valid auth state,
+		//as the API key will be sent with the config request.
+		//If the API key is invalid, the request will fail.
+		return IS_VALID_KEY.test(config.apiKey());
 	}
 
 

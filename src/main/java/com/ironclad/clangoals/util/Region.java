@@ -36,4 +36,14 @@ public enum Region
 	{
 		return this.regions.contains(region);
 	}
+
+	public static Set<Integer> combine(Region... regions)
+	{
+		ImmutableSet.Builder<Integer> builder = ImmutableSet.builder();
+		for (Region region : regions)
+		{
+			builder.addAll(region.regions);
+		}
+		return builder.build();
+	}
 }

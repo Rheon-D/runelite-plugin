@@ -62,6 +62,7 @@ public class StatusComponent implements Component
 	public void onStartUp(PluginState state)
 	{
 		this.eventBus.register(this);
+		this.statusReady = ClanUtils.isMemberOfClan(this.client);
 		updateStatus(); //Should only fire ingame anyway.
 	}
 
@@ -78,7 +79,7 @@ public class StatusComponent implements Component
 			return;
 		}
 
-		boolean disabledWorld = WorldUtils.isDisabledWorldType(this.client.getWorldType());
+		boolean disabledWorld = WorldUtils.isDisabledWorldType(this.remoteConfig);
 		boolean maintenance = this.remoteConfig.isMaintenance();
 		boolean noAuth = !this.isAuthenticated;
 		boolean noConfig = Strings.isNullOrEmpty(this.pluginConfig.apiKey());

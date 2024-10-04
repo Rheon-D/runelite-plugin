@@ -117,7 +117,7 @@ public class ServiceComponent implements Component
 
 			setState(this.state.toBuilder()
 					.inGame(true)
-					.inEnabledWorld(!WorldUtils.isDisabledWorldType(this.client.getWorldType()))
+					.inEnabledWorld(!WorldUtils.isDisabledWorldType(this.rConfigLoader.getManagedConfig()))
 					.build(),
 				false);
 

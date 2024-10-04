@@ -26,6 +26,11 @@ public class ConfigValidator implements Predicate<RemoteConfig>
 			return false;
 		}
 
+		if(pluginConfig.getDisabledWorlds() == null)
+		{
+			return false;
+		}
+
 		if(!ItemTrackingConfig.VALIDATOR.test(pluginConfig.getItemTrackingConfig()))
 		{
 			return false;

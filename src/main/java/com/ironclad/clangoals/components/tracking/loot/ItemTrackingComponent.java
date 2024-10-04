@@ -18,6 +18,7 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 import lombok.NonNull;
@@ -37,7 +38,7 @@ import net.runelite.http.api.loottracker.LootRecordType;
 @Singleton
 public class ItemTrackingComponent extends AbstractTrackingComponent<ItemTrackingComponent.Record, ItemTrackingConfig>
 {
-	private static final EnumSet<Region> BLOCKED_REGIONS = EnumSet.of(Region.LAST_MAN_STANDING, Region.SOUL_WARS);
+	private static final Set<Integer> BLOCKED_REGIONS = Region.combine(Region.LAST_MAN_STANDING, Region.SOUL_WARS); //TODO move to remote config
 	private final Client client;
 	private final ItemManager itemManager;
 	private final String endpoint;

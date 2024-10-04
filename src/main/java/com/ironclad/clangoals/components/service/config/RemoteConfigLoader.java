@@ -10,12 +10,12 @@ import com.ironclad.clangoals.components.tracking.loot.ItemTrackingConfig;
 import com.ironclad.clangoals.components.tracking.npcs.NPCTrackingConfig;
 import com.ironclad.clangoals.components.tracking.xp.XpTrackingConfig;
 import com.ironclad.clangoals.util.Environment;
+import com.ironclad.clangoals.util.WorldUtils;
 import com.ironclad.clangoals.util.predicate.ConfigValidator;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.util.concurrent.CompletableFuture;
 import javax.inject.Named;
 import joptsimple.internal.Strings;
 import lombok.NonNull;
@@ -26,7 +26,7 @@ import net.runelite.client.eventbus.EventBus;
 @Singleton
 public final class RemoteConfigLoader
 {
-	public static final RemoteConfig EMPTY_CONFIG = new RemoteConfig(Instant.EPOCH, 10, true, XpTrackingConfig.getEmpty(), ItemTrackingConfig.getEmpty(), NPCTrackingConfig.getEmpty());
+	public static final RemoteConfig EMPTY_CONFIG = new RemoteConfig(Instant.EPOCH, 10, true, WorldUtils.DISABLED_WORLDS ,XpTrackingConfig.getEmpty(), ItemTrackingConfig.getEmpty(), NPCTrackingConfig.getEmpty());
 	private static final ConfigValidator CONFIG_VALIDATOR = new ConfigValidator();
 
 	private final ApiService api;
@@ -60,10 +60,9 @@ public final class RemoteConfigLoader
 		this.fetchConfiguration();
 	}
 
-	CompletableFuture<RemoteConfig> fetchConfiguration()
+	void fetchConfiguration()
 	{
-		log.info("Checking for updated configuration");
-		CompletableFuture<RemoteConfig> future = new CompletableFuture<>();
+		log.debug("Checking for updated configuration");
 
 		if (this.developerMode && Environment.REMOTE_CONF.isSet())
 		{
@@ -74,10 +73,9 @@ public final class RemoteConfigLoader
 				{
 					String strConf = Files.readString(Paths.get(file));
 					RemoteConfig conf = this.gson.fromJson(strConf, RemoteConfig.class);
-					log.info("Using local remote config: {}", conf);
+					log.debug("Using local remote config: {}", conf);
 					updateConfiguration(conf);
-					future.complete(conf);
-					return future;
+					return;
 				}
 				catch (IOException e)
 				{
@@ -89,33 +87,27 @@ public final class RemoteConfigLoader
 		if (Strings.isNullOrEmpty(this.pluginConfig.apiKey()))
 		{
 			revert("API key not set");
-			future.complete(this.managedConfig);
-			return future;
+			return;
 		}
 
 		this.api.getPluginConfiguration(this.pluginConfig.apiKey()).thenAccept(config -> {
 			if (config != null && CONFIG_VALIDATOR.test(config))
 			{
 				updateConfiguration(config);
-				future.complete(config);
 			}
 			else
 			{
 				revert("Invalid configuration");
-				future.complete(this.managedConfig);
 			}
 		}).exceptionally(ex -> {
-			log.error("Failed to fetch configuration", ex);
-			future.complete(this.managedConfig);
+			log.error("Failed to fetch configuration {}", ex.getMessage());
 			return null;
 		});
-
-		return future;
 	}
 
 	private void revert(String reason)
 	{
-		log.info("Reverting to maintenance mode: {}", reason);
+		log.debug("Reverting to maintenance mode: {}", reason);
 		updateConfiguration(EMPTY_CONFIG);
 	}
 
@@ -124,7 +116,7 @@ public final class RemoteConfigLoader
 		if (config.getLastUpdated().isAfter(this.managedConfig.getLastUpdated()))
 		{
 			this.managedConfig.update(config);
-			log.info("Updated configuration: {}", this.managedConfig);
+			log.debug("Updated configuration: {}", this.managedConfig);
 			this.eventBus.post(new RemoteConfigChanged(this.managedConfig));
 		}
 	}

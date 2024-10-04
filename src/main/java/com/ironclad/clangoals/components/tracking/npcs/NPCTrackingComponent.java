@@ -70,9 +70,9 @@ import net.runelite.client.util.Text;
 public class NPCTrackingComponent extends AbstractTrackingComponent<TrackedNpc, NPCTrackingConfig>
 {
 	private static final EnumSet<ChatMessageType> ALLOWED_CHAT_TYPES = EnumSet.of(ChatMessageType.GAMEMESSAGE, ChatMessageType.SPAM);
-	private static final EnumSet<Region> RAID_REGIONS = EnumSet.of(Region.CHAMBERS_OF_XERIC, Region.THEATRE_OF_BLOOD, Region.TOMES_OF_AMASCUT);
-	private static final EnumSet<Region> MINIGAME_REGIONS = EnumSet.of(Region.SOUL_WARS, Region.TEMPOROSS, Region.ZALCANO, Region.WINTERTODT, Region.VOLCANIC_MINE);
-	private static final EnumSet<Region> DISABLED_REGIONS = EnumSet.of(Region.NIGHTMARE_ZONE, Region.CASTLE_WARS, Region.PVP_ARENA);
+	private static final Set<Integer> RAID_REGIONS = Region.combine(Region.CHAMBERS_OF_XERIC, Region.THEATRE_OF_BLOOD, Region.TOMES_OF_AMASCUT);
+	private static final Set<Integer> MINIGAME_REGIONS = Region.combine(Region.SOUL_WARS, Region.TEMPOROSS, Region.ZALCANO, Region.WINTERTODT, Region.VOLCANIC_MINE);
+	private static final Set<Integer> DISABLED_REGIONS = Region.combine(Region.NIGHTMARE_ZONE, Region.CASTLE_WARS, Region.PVP_ARENA);
 	static final Duration MISSING_DELAY_TICKS = Duration.of(50, RSTimeUnit.GAME_TICKS);
 
 	@Getter
@@ -378,6 +378,5 @@ public class NPCTrackingComponent extends AbstractTrackingComponent<TrackedNpc, 
 		}
 
 		getQueue().addItem(npc);
-		log.debug("Logged Kill: {}", npc);
 	}
 }

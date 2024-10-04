@@ -1,5 +1,6 @@
 package com.ironclad.clangoals.util;
 
+import com.ironclad.clangoals.components.service.config.dto.RemoteConfig;
 import java.util.EnumSet;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
@@ -13,7 +14,7 @@ import net.runelite.api.coords.WorldPoint;
 @UtilityClass
 public class WorldUtils
 {
-	private static final EnumSet<WorldType> DISABLED_WORLDS = EnumSet.of(
+	public final EnumSet<WorldType> DISABLED_WORLDS = EnumSet.of(
 		WorldType.DEADMAN,
 		WorldType.BETA_WORLD,
 		WorldType.NOSAVE_MODE,
@@ -24,6 +25,15 @@ public class WorldUtils
 		WorldType.QUEST_SPEEDRUNNING,
 		WorldType.PVP_ARENA
 	);
+
+	public boolean inRegion(int playerRegion, @NonNull Set<Integer> regions){
+		return regions.contains(playerRegion);
+	}
+
+	public boolean inRegion(@NonNull Client client, @NonNull Set<Integer> regions){
+		int playerRegion = getPlayerRegion(client);
+		return inRegion(playerRegion, regions);
+	}
 
 	public boolean inRegion(@NonNull Client client, @NonNull EnumSet<Region> regions)
 	{
@@ -81,9 +91,9 @@ public class WorldUtils
 		return false;
 	}
 
-	public boolean isDisabledWorldType(@NonNull EnumSet<WorldType> worldTypes)
+	public boolean isDisabledWorldType(@NonNull RemoteConfig remoteConfig)
 	{
-		for (WorldType worldType : worldTypes)
+		for (WorldType worldType : remoteConfig.getDisabledWorlds())
 		{
 			if (DISABLED_WORLDS.contains(worldType))
 			{

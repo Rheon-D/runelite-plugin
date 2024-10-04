@@ -7,9 +7,11 @@ import com.ironclad.clangoals.components.tracking.loot.ItemTrackingConfig;
 import com.ironclad.clangoals.components.tracking.npcs.NPCTrackingConfig;
 import com.ironclad.clangoals.components.tracking.xp.XpTrackingConfig;
 import java.time.Instant;
+import java.util.EnumSet;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import net.runelite.api.WorldType;
 
 @Data
 @Builder
@@ -23,6 +25,8 @@ public class RemoteConfig implements Updatable<RemoteConfig>
 	int refreshInterval;
 	@SerializedName("is_maintenance")
 	boolean maintenance;
+	@SerializedName("disabled_worlds")
+	EnumSet<WorldType> disabledWorlds;
 	@SerializedName("xp_tracking")
 	XpTrackingConfig xpTrackingConfig;
 	@SerializedName("item_tracking")
@@ -35,6 +39,7 @@ public class RemoteConfig implements Updatable<RemoteConfig>
 		this.lastUpdated = other.lastUpdated;
 		this.refreshInterval = other.refreshInterval;
 		this.maintenance = other.maintenance;
+		this.disabledWorlds = other.disabledWorlds;
 		this.npcTrackingConfig.update(other.npcTrackingConfig);
 		this.itemTrackingConfig.update(other.itemTrackingConfig);
 		this.xpTrackingConfig.update(other.xpTrackingConfig);
