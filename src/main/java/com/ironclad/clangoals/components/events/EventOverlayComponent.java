@@ -30,7 +30,7 @@ import net.runelite.client.util.HotkeyListener;
 @Singleton
 public class EventOverlayComponent extends OverlayPanel implements Component
 {
-	private static final DateTimeFormatter UTC_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyy HH:mm").withZone(TimeZone.getTimeZone("UTC").toZoneId());
+	private static final DateTimeFormatter UTC_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyy HH:mm z").withZone(TimeZone.getTimeZone("UTC").toZoneId());
 	private final IroncladClanGoalsConfig pluginConfig;
 	private final OverlayManager overlayManager;
 	private final EventBus eventBus;
