@@ -10,7 +10,7 @@ import net.runelite.client.plugins.PluginDescriptor;
 @PluginDescriptor(
 	name = "IronClad Clan Goals",
 	description = "A tracker to allow participants to contribute towards IronClad clan goals",
-	tags = {"IronClad", "clan", "goals"}
+	tags = {"IronClad", "clan", "goals","events", "tracker"}
 )
 public class IroncladClanGoalsPlugin extends Plugin
 {
