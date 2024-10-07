@@ -19,6 +19,7 @@ import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.input.KeyManager;
+import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.ui.overlay.OverlayMenuEntry;
 import net.runelite.client.ui.overlay.OverlayPanel;
@@ -46,8 +47,9 @@ public class EventOverlayComponent extends OverlayPanel implements Component
 								 KeyManager keyManager)
 	{
 		super(plugin);
-		setPosition(OverlayPosition.TOP_RIGHT);
-		getMenuEntries().add(new OverlayMenuEntry(MenuAction.RUNELITE_OVERLAY_CONFIG, OverlayManager.OPTION_CONFIGURE, "Event Password"));
+		setLayer(OverlayLayer.ABOVE_WIDGETS);
+		setPosition(OverlayPosition.TOP_CENTER);
+		getMenuEntries().add(new OverlayMenuEntry(MenuAction.RUNELITE_OVERLAY_CONFIG, OverlayManager.OPTION_CONFIGURE, "event password"));
 
 		this.pluginConfig = pluginConfig;
 		this.overlayManager = overlayManager;
