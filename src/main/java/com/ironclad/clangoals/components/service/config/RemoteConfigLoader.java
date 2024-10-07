@@ -53,6 +53,7 @@ public final class RemoteConfigLoader
 			.lastUpdated(Instant.EPOCH)
 			.refreshInterval(10)
 			.maintenance(true)
+			.disabledWorlds(WorldUtils.DISABLED_WORLDS)
 			.xpTrackingConfig(XpTrackingConfig.DEFAULT)
 			.itemTrackingConfig(ItemTrackingConfig.DEFAULT)
 			.npcTrackingConfig(NPCTrackingConfig.DEFAULT)

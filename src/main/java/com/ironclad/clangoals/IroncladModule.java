@@ -7,6 +7,7 @@ import com.google.inject.Singleton;
 import com.google.inject.multibindings.Multibinder;
 import com.google.inject.name.Named;
 import com.google.inject.name.Names;
+import com.ironclad.clangoals.components.events.EventOverlayComponent;
 import com.ironclad.clangoals.components.status.StatusComponent;
 import com.ironclad.clangoals.components.service.ServiceComponent;
 import com.ironclad.clangoals.components.service.config.RemoteConfigRefresher;
@@ -45,6 +46,7 @@ final class IroncladModule extends AbstractModule
 		components.addBinding().to(NPCTrackingComponent.class);
 		components.addBinding().to(NPCTrackingDevOverlay.class);
 		components.addBinding().to(RemoteConfigRefresher.class);
+		components.addBinding().to(EventOverlayComponent.class);
 	}
 
 	@Provides

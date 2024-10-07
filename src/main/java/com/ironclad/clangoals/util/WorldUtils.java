@@ -91,11 +91,11 @@ public class WorldUtils
 		return false;
 	}
 
-	public boolean isDisabledWorldType(@NonNull RemoteConfig remoteConfig)
+	public boolean isDisabledWorldType(@NonNull RemoteConfig rConfig, @NonNull EnumSet<WorldType> currentWorldType)
 	{
-		for (WorldType worldType : remoteConfig.getDisabledWorlds())
+		for (WorldType worldType : rConfig.getDisabledWorlds())
 		{
-			if (DISABLED_WORLDS.contains(worldType))
+			if (currentWorldType.contains(worldType))
 			{
 				return true;
 			}

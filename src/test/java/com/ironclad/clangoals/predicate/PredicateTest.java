@@ -50,7 +50,7 @@ public class PredicateTest
 			.build();
 		assertTrue(validConfig.test(conf));
 		assertFalse(validConfig.test(null));
-		assertFalse(validConfig.test(new RemoteConfig(null, 1, true, null, null, null)));
+		assertFalse(validConfig.test(new RemoteConfig(null, 1, true, null, null, null, null)));
 		conf.setRefreshInterval(600);
 		assertFalse(validConfig.test(conf));
 	}

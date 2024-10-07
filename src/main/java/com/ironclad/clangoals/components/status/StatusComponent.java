@@ -79,7 +79,7 @@ public class StatusComponent implements Component
 			return;
 		}
 
-		boolean disabledWorld = WorldUtils.isDisabledWorldType(this.remoteConfig);
+		boolean disabledWorld = WorldUtils.isDisabledWorldType(this.remoteConfig, this.client.getWorldType());
 		boolean maintenance = this.remoteConfig.isMaintenance();
 		boolean noAuth = !this.isAuthenticated;
 		boolean noConfig = Strings.isNullOrEmpty(this.pluginConfig.apiKey());
@@ -104,7 +104,7 @@ public class StatusComponent implements Component
 			{
 				builder.append("as you aren't authenticated: Please check your API key in the plugin configuration.");
 			}
-			if (disabledWorld)
+			else if (disabledWorld)
 			{
 				builder.append("on this world.");
 			}
