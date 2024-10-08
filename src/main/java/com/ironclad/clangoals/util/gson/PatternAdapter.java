@@ -20,6 +20,7 @@ public class PatternAdapter implements JsonSerializer<Pattern>, JsonDeserializer
 		return jsonObject;
 	}
 
+	@SuppressWarnings("MagicConstant")
 	@Override
 	public Pattern deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
 		JsonObject jsonObject = json.getAsJsonObject();

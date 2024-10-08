@@ -47,11 +47,6 @@ final class TrackedNpc
 		{
 			this.damageOther += hitsplat.getAmount();
 		}
-		/*
-		else if (hitsplat.getHitsplatType() == 1)//That blocky thing
-		{
-			this.damageOther = Integer.MAX_VALUE; //Assume we can't get the kill. Will only happen for irons, sadscamgame
-		}*/
 	}
 
 	public boolean creditMe()

@@ -6,7 +6,7 @@ import joptsimple.internal.Strings;
 import lombok.Value;
 
 /**
- * When an NPC isn't actually an NPC but we want it to be treated as one
+ * When an NPC isn't actually an NPC, but we want it to be treated as one
  * or to serve as a name->id mapping for use with KC chat events.
  */
 @Value

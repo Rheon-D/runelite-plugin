@@ -31,7 +31,6 @@ import net.runelite.client.events.ConfigChanged;
 public class ServiceComponent implements Component
 {
 	private static final PluginState DEFAULT_STATE = PluginState.builder().maintenance(true).build();
-	private static final ValidApiKey VALID_API_KEY = new ValidApiKey();
 
 	private final ApiService api;
 	private final RemoteConfigLoader rConfigLoader;

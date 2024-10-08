@@ -15,7 +15,6 @@ import com.ironclad.clangoals.components.tracking.AbstractTrackingComponent;
 import com.ironclad.clangoals.util.Region;
 import com.ironclad.clangoals.util.WorldUtils;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -100,9 +99,7 @@ public class ItemTrackingComponent extends AbstractTrackingComponent<ItemTrackin
 	{
 		this.table.clear();
 
-		config.getLootEvents().forEach((item) -> {
-			this.table.put(item.getType(), item.getEvent(), item);
-		});
+		config.getLootEvents().forEach((item) -> this.table.put(item.getType(), item.getEvent(), item));
 	}
 
 	@Override

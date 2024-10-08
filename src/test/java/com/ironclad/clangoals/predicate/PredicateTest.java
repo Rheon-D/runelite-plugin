@@ -1,6 +1,5 @@
 package com.ironclad.clangoals.predicate;
 
-import com.ironclad.clangoals.components.service.config.RemoteConfigLoader;
 import com.ironclad.clangoals.components.service.config.dto.RemoteConfig;
 import com.ironclad.clangoals.components.tracking.loot.ItemTrackingConfig;
 import com.ironclad.clangoals.components.tracking.npcs.NPCTrackingConfig;
