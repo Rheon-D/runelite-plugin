@@ -163,9 +163,17 @@ public class ServiceComponent implements Component
 	@Subscribe(priority = Float.MAX_VALUE)
 	private void onRemoteConfigChanged(RemoteConfigChanged e)
 	{
-		setState(this.state.toBuilder()
-			.maintenance(e.getConfig().isMaintenance())
-			.build(), false);
+		PluginState.PluginStateBuilder newState = this.state.toBuilder().maintenance(e.getConfig().isMaintenance());
+		if(this.state.isMaintenance() && !e.getConfig().isMaintenance())
+		{
+			//We've come out of maintenance, recheck the API key
+				this.executor.execute(() -> {
+					boolean result = this.api.checkAuth(this.pluginConfig.apiKey());
+					setState(newState.authenticated(result).build(), false);
+				}); //TODO Generify
+		}else{
+			setState(newState.build(), false);
+		}
 	}
 
 	private void verifyApiKey(String key, boolean force)
